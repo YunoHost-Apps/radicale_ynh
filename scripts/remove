@@ -14,15 +14,11 @@ else
 fi
 domain=$(sudo yunohost app setting $app domain)
 
-REMOVE_APP_DIR	# Suppression du dossier de l'application
-if [ -e "/opt/yunohost/$app" ]; then
-	echo "Delete virtualenv"
-	sudo rm -r "/opt/yunohost/$app"
-fi
-if [ -e "/etc/$app/" ]; then
-	echo "Delete radicale config"
-	sudo rm -r "/etc/$app/"
-fi
+SECURE_REMOVE '/var/www/$app'	# Suppression du dossier de l'application
+
+SECURE_REMOVE '/opt/yunohost/$app'
+
+SECURE_REMOVE '/etc/$app/'	# Delete radicale config
 
 # Suppression de la configuration uwsgi
 # Stoppe le service uwsgi

@@ -20,6 +20,6 @@ La configuration des partages se fait à l'aide du fichier de configuration des 
 Le script installe les paquets *libjansson4* *libldap2-dev* *libmatheval1* *libpgm-5.1-0* *libpython-dev* *libsasl2-dev* *libsodium13* *libzmq3* *python-chardet-whl* *python-colorama-whl* *python-dev* *python-distlib-whl* *python-html5lib-whl* *python-pip-whl* *python-requests-whl* *python-setuptools-whl* *python-six-whl* *python-urllib3-whl* *python-virtualenv* *python3-virtualenv* *uwsgi* *uwsgi-core* *uwsgi-plugin-python* *virtualenv*.
 
 **Mise à jour du package:**  
-sudo yunohost app upgrade -u https://github.com/YunoHost-Apps/radicale_ynh
+sudo yunohost app upgrade --verbose radicale -u https://github.com/YunoHost-Apps/radicale_ynh
 
 **Multi-utilisateur:** Oui, avec support ldap.
