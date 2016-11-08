@@ -3,12 +3,8 @@
 source .fonctions	# Charge les fonctions génériques habituellement utilisées dans le script
 
 # Récupère les infos de l'application.
-YNH_VERSION	# Récupère le numéro de version de Yunohost.
-if [ $ynh_version = "2.4" ]; then
-	app=$YNH_APP_INSTANCE_NAME
-else
-	app=radicale
-fi
+app=$YNH_APP_INSTANCE_NAME
+
 domain=$(sudo yunohost app setting $app domain)
 path=$(sudo yunohost app setting $app path)
 admin=$(sudo yunohost app setting $app admin)
@@ -170,8 +166,3 @@ sudo service nginx reload
 # Mise en place des hook pour la création des collections par défaut des nouveaux utilisateurs. Et leur suppression
 sudo sed -i "s@__FINALPATH__@$final_path@g" ../hooks/post_user_create
 sudo sed -i "s@__FINALPATH__@$final_path@g" ../hooks/post_user_delete
-if [ $ynh_version != "2.4" ]
-then
-	sudo yunohost hook add radicale ../hooks/post_user_create
-	sudo yunohost hook add radicale ../hooks/post_user_delete
-fi

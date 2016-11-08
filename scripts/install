@@ -2,8 +2,6 @@
 
 source .fonctions	# Charge les fonctions génériques habituellement utilisées dans le script
 
-YNH_VERSION	# Récupère le numéro de version de Yunohost.
-
 CLEAN_SETUP () {
 # Nettoyage des résidus d'installation non pris en charge par le script remove.
 # Pas de nettoyage supplémentaire nécessaire ici...
@@ -12,26 +10,16 @@ CLEAN_SETUP () {
 TRAP_ON	# Active trap pour arrêter le script si une erreur est détectée.
 
 # Retrieve arguments
-if [ $ynh_version = "2.4" ]
-then
-	domain=$YNH_APP_ARG_DOMAIN
-	path=$YNH_APP_ARG_PATH
-	admin=$YNH_APP_ARG_ADMIN
-	infcloud=$YNH_APP_ARG_INFCLOUD
-	language=$YNH_APP_ARG_LANGUAGE
+domain=$YNH_APP_ARG_DOMAIN
+path=$YNH_APP_ARG_PATH
+admin=$YNH_APP_ARG_ADMIN
+infcloud=$YNH_APP_ARG_INFCLOUD
+language=$YNH_APP_ARG_LANGUAGE
 
-	app=$YNH_APP_INSTANCE_NAME
+app=$YNH_APP_INSTANCE_NAME
 
-	# Source app helpers
-	source /usr/share/yunohost/helpers
-else
-	domain=$1
-	path=$2
-	admin=$3
-	infcloud=$4
-	language=$5
-	app=radicale
-fi
+# Source app helpers
+source /usr/share/yunohost/helpers
 
 # Checks variables are not empty
 CHECK_VAR "$app" "app name not set"
@@ -220,8 +208,3 @@ sudo yunohost app ssowatconf
 # Modification des hook pour la création des collections par défaut des nouveaux utilisateurs. Et leur suppression
 sudo sed -i "s@__FINALPATH__@$final_path@g" ../hooks/post_user_create
 sudo sed -i "s@__FINALPATH__@$final_path@g" ../hooks/post_user_delete
-if [ $ynh_version != "2.4" ]
-then
-	sudo yunohost hook add radicale ../hooks/post_user_create
-	sudo yunohost hook add radicale ../hooks/post_user_delete
-fi

@@ -3,15 +3,11 @@
 source .fonctions	# Charge les fonctions génériques habituellement utilisées dans le script
 
 # Récupère les infos de l'application.
-YNH_VERSION	# Récupère le numéro de version de Yunohost.
-if [ $ynh_version = "2.4" ]; then
-	app=$YNH_APP_INSTANCE_NAME
+app=$YNH_APP_INSTANCE_NAME
 
-	# Source app helpers
-	source /usr/share/yunohost/helpers
-else
-	app=radicale
-fi
+# Source app helpers
+source /usr/share/yunohost/helpers
+
 domain=$(sudo yunohost app setting $app domain)
 
 SECURE_REMOVE '/var/www/$app'	# Suppression du dossier de l'application
@@ -44,12 +40,6 @@ REMOVE_NGINX_CONF	# Suppression de la configuration nginx
 REMOVE_FPM_CONF	# Suppression de la configuration du pool php-fpm
 
 REMOVE_LOGROTATE_CONF	# Suppression de la configuration de logrotate
-
-if [ $ynh_version != "2.4" ]
-then
-	# Retire le hook sur la création de nouveaux utilisateurs
-	sudo yunohost hook remove radicale
-fi
 
 # Régénère la configuration de SSOwat
 sudo yunohost app ssowatconf
