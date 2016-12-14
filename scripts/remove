@@ -8,7 +8,7 @@ app=$YNH_APP_INSTANCE_NAME
 # Source app helpers
 source /usr/share/yunohost/helpers
 
-domain=$(sudo yunohost app setting $app domain)
+domain=$(ynh_app_setting_get $app domain)
 
 SECURE_REMOVE '/var/www/$app'	# Suppression du dossier de l'application
 
@@ -28,7 +28,7 @@ if [ -h "/etc/uwsgi/apps-enabled/radicale.ini" ]; then
 	sudo rm "/etc/uwsgi/apps-enabled/radicale.ini"
 fi
 
-if grep -q "^radicale:" /etc/passwd	# Test l'existence de l'utilisateur
+if ynh_system_user_exists "radicale"	# Test l'existence de l'utilisateur
 then
 	sudo userdel radicale
 fi

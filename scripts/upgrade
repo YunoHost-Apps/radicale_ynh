@@ -5,12 +5,15 @@ source .fonctions	# Charge les fonctions génériques habituellement utilisées 
 # Récupère les infos de l'application.
 app=$YNH_APP_INSTANCE_NAME
 
-domain=$(sudo yunohost app setting $app domain)
-path=$(sudo yunohost app setting $app path)
-admin=$(sudo yunohost app setting $app admin)
-infcloud=$(sudo yunohost app setting $app infcloud)
-language=$(sudo yunohost app setting $app language)
-final_path=$(sudo yunohost app setting $app final_path)
+# Source app helpers
+source /usr/share/yunohost/helpers
+
+domain=$(ynh_app_setting_get $app domain)
+path=$(ynh_app_setting_get $app path)
+admin=$(ynh_app_setting_get $app admin)
+infcloud=$(ynh_app_setting_get $app infcloud)
+language=$(ynh_app_setting_get $app language)
+final_path=$(ynh_app_setting_get $app final_path)
 
 # Modifie le domaine pour qu'il passe dans une regex
 domain_regex=$(echo "$domain" | sed 's@-@.@g')
@@ -95,7 +98,7 @@ then	#Configuration InfCloud
 		"Chinese") language="zh_CN"
 		;;
 	esac
-	sudo yunohost app setting $app language -v $language
+	ynh_app_setting_set $app language $language
 	CHECK_MD5_CONFIG "config.js" "$final_path/infcloud/config.js"	# Créé un backup du fichier de config si il a été modifié.
 	sudo cp ../conf/config.js "$final_path/infcloud/"
 	sudo sed -i "s@__DOMAIN__@$domain@g" "$final_path/infcloud/config.js"
@@ -153,11 +156,11 @@ sudo chmod 777 $final_path/default_collections $final_path/default_collections/U
 
 if [ "$infcloud" = "1" ]
 then	# /infcloud vient se rajouter à l'adresse de radicale pour y être associé sur le portail.
-	sudo yunohost app setting $app path -v $path/infcloud	# Remplace radicale par InfCloud dans le portail Yunohost
-	sudo yunohost app setting $app protected_uris -v "/"	# Protège l'accès à infcloud
-	sudo yunohost app setting $app unprotected_regex -v "$domain_regex$path"	# Radicale est accessible librement (pour l'accès distant aux ressources)
+	ynh_app_setting_set $app path $path/infcloud	# Remplace radicale par InfCloud dans le portail Yunohost
+	ynh_app_setting_set $app protected_uris "/"	# Protège l'accès à infcloud
+	ynh_app_setting_set $app unprotected_regex "$domain_regex$path"	# Radicale est accessible librement (pour l'accès distant aux ressources)
 else	# Si seul radicale est installé.
-	sudo yunohost app setting $app unprotected_uris -v "/"	# Radicale est accessible librement (pour l'accès distant aux ressources)
+	ynh_app_setting_set $app unprotected_uris "/"	# Radicale est accessible librement (pour l'accès distant aux ressources)
 fi
 sudo yunohost app ssowatconf
 sudo service uwsgi restart

@@ -3,9 +3,12 @@
 # Récupère les infos de l'application.
 app=$YNH_APP_INSTANCE_NAME
 
-final_path=$(sudo yunohost app setting $app final_path)
-domain=$(sudo yunohost app setting $app domain)
-infcloud=$(sudo yunohost app setting $app infcloud)
+# Source app helpers
+source /usr/share/yunohost/helpers
+
+final_path=$(ynh_app_setting_get $app final_path)
+domain=$(ynh_app_setting_get $app domain)
+infcloud=$(ynh_app_setting_get $app infcloud)
 
 # The parameter $1 is the uncompressed restore directory location
 backup_dir=$1/apps/$app
@@ -17,18 +20,27 @@ sudo cp -a $backup_dir/sources/. $final_path
 sudo cp -a $backup_dir/yunohost/. /etc/yunohost/apps/$app
 sudo cp -a $backup_dir/nginx.conf /etc/nginx/conf.d/$domain.d/$app.conf
 
-# Restore radicale configuration
-sudo cp -a $backup_dir/etc/. /etc/$app
+# Check depends installation
+sudo apt-get install -y python-pip python-virtualenv python-dev libldap2-dev libsasl2-dev libssl-dev uwsgi uwsgi-plugin-python
 
 # Restore virtualenv
-sudo cp -a $backup_dir/virtualenv/. /opt/yunohost/$app
+sudo mkdir -p /opt/yunohost/$app
+sudo cp -a $backup_dir/virtualenv/. /opt/yunohost/$app/
 
 # Set permissions to radicale directory
-if ! grep -q "^radicale:" /etc/passwd	# Test l'existence de l'utilisateur
+if ! ynh_system_user_exists "radicale"
 then	# Si il n'existe pas, l'user radicale est créé
 	sudo useradd radicale -d /opt/yunohost/$app
 fi
 sudo chown radicale: -R /opt/yunohost/$app
+
+sudo chown -R radicale: $final_path
+sudo mkdir -p /var/log/$app
+sudo touch /var/log/$app/$app.log
+sudo chown radicale -R /var/log/$app
+
+# Restore radicale configuration
+sudo cp -a $backup_dir/etc/. /etc/$app
 
 # Restore uwsgi config
 sudo cp -a $backup_dir/uwsgi_conf /etc/uwsgi/apps-available/radicale.ini
