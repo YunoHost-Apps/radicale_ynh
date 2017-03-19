@@ -4,7 +4,7 @@
 		domain="domain.tld"	(DOMAIN)
 		path="/path"	(PATH)
 		admin="john"	(USER)
-		infcloud="Yes"
+		infcloud=1
 		language="French"
 	; Checks
 		pkg_linter=1
@@ -16,20 +16,15 @@
 		upgrade=1
 		backup_restore=1
 		multi_instance=0
-		wrong_user=1
-		wrong_path=1
 		incorrect_path=1
-		corrupt_source=0
-		fail_download_source=0
 		port_already_use=0
-		final_path_already_use=0
 ;; Test sans Infcloud
 	auto_remove=1
 	; Manifest
 		domain="domain.tld"	(DOMAIN)
 		path="/path"	(PATH)
 		admin="john"	(USER)
-		infcloud="No"
+		infcloud=0
 		language="French"
 	; Checks
 		setup_sub_dir=1
@@ -40,18 +35,15 @@
 		upgrade=1
 		backup_restore=1
 		multi_instance=0
-		wrong_user=0
-		wrong_path=0
 		incorrect_path=0
-		corrupt_source=0
-		fail_download_source=0
 		port_already_use=0
-		final_path_already_use=0
 ;;; Levels
 	Level 1=auto
 	Level 2=auto
 	Level 3=auto
+# Level 4: https://github.com/YunoHost-Apps/radicale_ynh/issues/2
 	Level 4=0
+# Level 5: https://github.com/YunoHost-Apps/radicale_ynh/issues/6
 	Level 5=auto
 	Level 6=auto
 	Level 7=auto

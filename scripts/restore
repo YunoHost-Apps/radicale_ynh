@@ -1,37 +1,97 @@
 #!/bin/bash
 
-# Récupère les infos de l'application.
-app=$YNH_APP_INSTANCE_NAME
+#=================================================
+# GENERIC STARTING
+#=================================================
+# MANAGE FAILURE OF THE SCRIPT
+#=================================================
 
-# Source app helpers
+# Exit on command errors and treat unset variables as an error
+set -eu
+
+#=================================================
+# IMPORT GENERIC HELPERS
+#=================================================
+
+if [ ! -e .fonctions ]; then
+	# Rapatrie le fichier de fonctions si il n'est pas dans le dossier courant
+	sudo cp ../settings/scripts/.fonctions ./.fonctions
+	sudo chmod a+rx .fonctions
+fi
+source .fonctions
 source /usr/share/yunohost/helpers
+
+#=================================================
+# LOAD SETTINGS
+#=================================================
+
+app=$YNH_APP_INSTANCE_NAME
 
 final_path=$(ynh_app_setting_get $app final_path)
 domain=$(ynh_app_setting_get $app domain)
 infcloud=$(ynh_app_setting_get $app infcloud)
+path_url=$(ynh_app_setting_get $app path)
 
-# The parameter $1 is the uncompressed restore directory location
-backup_dir=$1/apps/$app
+#=================================================
+# CHECK IF THE APP CAN BE RESTORED
+#=================================================
 
-# Restore sources & data
-sudo cp -a $backup_dir/sources/. $final_path
+sudo yunohost app checkurl "${domain}${path_url}" -a "$app" \
+	|| ynh_die "Path not available: ${domain}${path_url}"
+test ! -d $final_path \
+	|| ynh_die "There is already a directory: $final_path "
+test ! -d "/opt/yunohost/$app" \
+	|| ynh_die "There is already a directory: /opt/yunohost/$app "
 
-# Restore Nginx and YunoHost parameters
-sudo cp -a $backup_dir/yunohost/. /etc/yunohost/apps/$app
-sudo cp -a $backup_dir/nginx.conf /etc/nginx/conf.d/$domain.d/$app.conf
+#=================================================
+# STANDARD RESTORE STEPS
+#=================================================
+# RESTORE OF THE NGINX CONFIGURATION
+#=================================================
 
-# Check depends installation
-sudo apt-get install -y python-pip python-virtualenv python-dev libldap2-dev libsasl2-dev libssl-dev uwsgi uwsgi-plugin-python
-
-# Restore virtualenv
-sudo mkdir -p /opt/yunohost/$app
-sudo cp -a $backup_dir/virtualenv/. /opt/yunohost/$app/
-
-# Set permissions to radicale directory
-if ! ynh_system_user_exists "radicale"
-then	# Si il n'existe pas, l'user radicale est créé
-	sudo useradd radicale -d /opt/yunohost/$app
+conf=/etc/nginx/conf.d/$domain.d/$app.conf
+if [ -f $conf ]; then
+	ynh_die "There is already a nginx conf file at this path: $conf "
 fi
+sudo cp -a ./nginx.conf $conf
+
+#=================================================
+# RESTORE OF THE MAIN DIR OF THE APP
+#=================================================
+
+sudo cp -a ./sources/. $final_path
+sudo mkdir -p /opt/yunohost/$app
+sudo cp -a ./virtualenv/. /opt/yunohost/$app/
+
+#=================================================
+# INSTALL DEPENDENCIES
+#=================================================
+
+ynh_install_app_dependencies python-pip python-virtualenv python-dev libldap2-dev libsasl2-dev libssl-dev uwsgi uwsgi-plugin-python
+
+#=================================================
+# RECREATE OF THE DEDICATED USER
+#=================================================
+
+ynh_system_user_create $app	# Recreate the dedicated user, if not exist
+
+#=================================================
+# RESTORE OF THE PHP-FPM CONFIGURATION
+#=================================================
+
+if [ $infcloud -eq 1 ]
+then
+	sudo cp -a ./php-fpm.conf /etc/php5/fpm/pool.d/$app.conf
+	sudo cp -a ./php-fpm.ini /etc/php5/fpm/conf.d/20-$app.ini
+	sudo systemctl reload php5-fpm
+fi
+
+#=================================================
+# SPECIFIC RESTORE
+#=================================================
+# RESTORE USER RIGHTS
+#=================================================
+
 sudo chown radicale: -R /opt/yunohost/$app
 
 sudo chown -R radicale: $final_path
@@ -39,26 +99,30 @@ sudo mkdir -p /var/log/$app
 sudo touch /var/log/$app/$app.log
 sudo chown radicale -R /var/log/$app
 
-# Restore radicale configuration
-sudo cp -a $backup_dir/etc/. /etc/$app
+#=================================================
+# RESTORE THE UWSGI CONFIG
+#=================================================
 
-# Restore uwsgi config
-sudo cp -a $backup_dir/uwsgi_conf /etc/uwsgi/apps-available/radicale.ini
+sudo cp -a ./uwsgi_conf /etc/uwsgi/apps-available/radicale.ini
 sudo ln -s /etc/uwsgi/apps-available/radicale.ini /etc/uwsgi/apps-enabled/
 
-# Copy dedicated php-fpm process to backup folder
-if [ "$infcloud" = "1" ]
-then
-	sudo cp -a $backup_dir/php-fpm.conf /etc/php5/fpm/pool.d/$app.conf
-	sudo cp -a $backup_dir/php-fpm.ini /etc/php5/fpm/conf.d/20-$app.ini
-	sudo service php5-fpm reload
-fi
+#=================================================
+# RESTORE THE RADICALE CONFIGURATION
+#=================================================
 
-# Restaure la configuration de logrotate
-sudo cp -a $backup_dir/logrotate /etc/logrotate.d/$app
+sudo cp -a ./etc /etc/$app
 
-# Restart webserver
-sudo service nginx reload
+#=================================================
+# BACKUP OF THE LOGROTATE CONFIGURATION
+#=================================================
 
-# Restart uwsgi
-sudo service uwsgi restart
+sudo cp -a ./logrotate /etc/logrotate.d/$app
+
+#=================================================
+# GENERIC FINALISATION
+#=================================================
+# RELOAD NGINX AND UWSGI
+#=================================================
+
+sudo systemctl restart uwsgi
+sudo systemctl reload nginx

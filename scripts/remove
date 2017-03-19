@@ -1,24 +1,30 @@
 #!/bin/bash
 
-source .fonctions	# Charge les fonctions génériques habituellement utilisées dans le script
+#=================================================
+# GENERIC STARTING
+#=================================================
+# IMPORT GENERIC HELPERS
+#=================================================
 
-# Récupère les infos de l'application.
-app=$YNH_APP_INSTANCE_NAME
-
-# Source app helpers
+source .fonctions
 source /usr/share/yunohost/helpers
+
+#=================================================
+# LOAD SETTINGS
+#=================================================
+
+app=$YNH_APP_INSTANCE_NAME
 
 domain=$(ynh_app_setting_get $app domain)
 
-SECURE_REMOVE '/var/www/$app'	# Suppression du dossier de l'application
-
-SECURE_REMOVE '/opt/yunohost/$app'
-
-SECURE_REMOVE '/etc/$app/'	# Delete radicale config
+#=================================================
+# STANDARD REMOVE
+#=================================================
+# STOP AND REMOVE SERVICE
+#=================================================
 
 # Suppression de la configuration uwsgi
-# Stoppe le service uwsgi
-sudo service uwsgi stop
+sudo systemctl stop uwsgi
 if [ -e "/etc/uwsgi/apps-available/radicale.ini" ]; then
 	echo "Delete uwsgi config"
 	sudo rm "/etc/uwsgi/apps-available/radicale.ini"
@@ -28,20 +34,65 @@ if [ -h "/etc/uwsgi/apps-enabled/radicale.ini" ]; then
 	sudo rm "/etc/uwsgi/apps-enabled/radicale.ini"
 fi
 
-if ynh_system_user_exists "radicale"	# Test l'existence de l'utilisateur
-then
-	sudo userdel radicale
-fi
-# Redémarre le service uwsgi
-sudo service uwsgi start
+#=================================================
+# REMOVE DEPENDENCIES
+#=================================================
+
+ynh_remove_app_dependencies
+
+#=================================================
+# REMOVE THE MAIN DIR OF THE APP
+#=================================================
+
+SECURE_REMOVE '/var/www/$app'	# Suppression du dossier de l'application
+SECURE_REMOVE '/opt/yunohost/$app'
+
+#=================================================
+# REMOVE THE NGINX CONFIGURATION
+#=================================================
 
 REMOVE_NGINX_CONF	# Suppression de la configuration nginx
 
+#=================================================
+# REMOVE THE PHP-FPM CONFIGURATION
+#=================================================
+
 REMOVE_FPM_CONF	# Suppression de la configuration du pool php-fpm
 
-REMOVE_LOGROTATE_CONF	# Suppression de la configuration de logrotate
+#=================================================
+# REMOVE THE LOGROTATE CONFIG
+#=================================================
 
-# Régénère la configuration de SSOwat
-sudo yunohost app ssowatconf
+ynh_remove_logrotate	# Suppression de la configuration de logrotate
 
-echo -e "\e[0m"	# Restore normal color
+#=================================================
+# SPECIFIC REMOVE
+#=================================================
+# REMOVE RADICALE'S CONFIG
+#=================================================
+
+SECURE_REMOVE '/etc/$app/'	# Delete radicale config
+
+#=================================================
+# DISABLE SERVICE IN ADMIN PANEL
+#=================================================
+
+if [ -e /etc/init.d/uwsgi ]
+then
+	# Redémarre le service uwsgi si il n'est pas désinstallé.
+	sudo systemctl start uwsgi
+else
+	if sudo yunohost service status | grep -q uwsgi	# Test l'existence du service dans Yunohost
+	then
+		echo "Remove uwsgi service"
+		sudo yunohost service remove uwsgi
+	fi
+fi
+
+#=================================================
+# GENERIC FINALISATION
+#=================================================
+# REMOVE DEDICATED USER
+#=================================================
+
+ynh_system_user_delete $app

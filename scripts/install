@@ -1,68 +1,105 @@
 #!/bin/bash
 
-source .fonctions	# Charge les fonctions génériques habituellement utilisées dans le script
+#=================================================
+# GENERIC STARTING
+#=================================================
+# IMPORT GENERIC HELPERS
+#=================================================
 
-CLEAN_SETUP () {
-# Nettoyage des résidus d'installation non pris en charge par le script remove.
-# Pas de nettoyage supplémentaire nécessaire ici...
-	echo ""
-}
-TRAP_ON	# Active trap pour arrêter le script si une erreur est détectée.
+source .fonctions
+source /usr/share/yunohost/helpers
 
-# Retrieve arguments
+#=================================================
+# MANAGE FAILURE OF THE SCRIPT
+#=================================================
+
+ynh_abort_if_errors	# Active trap pour arrêter le script si une erreur est détectée.
+
+#=================================================
+# RETRIEVE ARGUMENTS FROM THE MANIFEST
+#=================================================
+
 domain=$YNH_APP_ARG_DOMAIN
-path=$YNH_APP_ARG_PATH
+path_url=$YNH_APP_ARG_PATH
 admin=$YNH_APP_ARG_ADMIN
 infcloud=$YNH_APP_ARG_INFCLOUD
 language=$YNH_APP_ARG_LANGUAGE
 
 app=$YNH_APP_INSTANCE_NAME
 
-# Source app helpers
-source /usr/share/yunohost/helpers
+version=1.1.1
 
-# Checks variables are not empty
-CHECK_VAR "$app" "app name not set"
-
+#=================================================
+# CHECK IF THE APP CAN BE INSTALLED WITH THIS ARGS
+#=================================================
 
 CHECK_USER "$admin"	# Vérifie la validité de l'user admin
-
-CHECK_PATH	# Vérifie et corrige la syntaxe du path.
+path_url=$(ynh_normalize_url_path $path_url)	# Vérifie et corrige la syntaxe du path.
 CHECK_DOMAINPATH	# Vérifie la disponibilité du path et du domaine.
-
 CHECK_FINALPATH	# Vérifie que le dossier de destination n'est pas déjà utilisé.
 
-# Modifie le domaine pour qu'il passe dans une regex
-domain_regex=$(echo "$domain" | sed 's@-@.@g')
-CHECK_VAR "$domain_regex" "domain_regex empty"
+#=================================================
+# STORE SETTINGS FROM MANIFEST
+#=================================================
 
-if [ "$infcloud" = "Yes" ] || [ "$infcloud" = "yes" ] || [ "$infcloud" = "YES" ] || [ "$infcloud" = "Y" ] || [ "$infcloud" = "y" ]
-then
-	infcloud=1
-else
-	infcloud=0
-fi
-
-# Enregistre les infos dans la config YunoHost
 ynh_app_setting_set $app domain $domain
-ynh_app_setting_set $app path $path/
+ynh_app_setting_set $app path $path_url
 ynh_app_setting_set $app admin $admin
 ynh_app_setting_set $app infcloud $infcloud
+ynh_app_setting_set $app version $version
 
+#=================================================
+# STANDARD MODIFICATIONS
+#=================================================
+# INSTALL DEPENDENCIES
+#=================================================
+
+ynh_install_app_dependencies python-pip python-virtualenv python-dev libldap2-dev libsasl2-dev libssl-dev uwsgi uwsgi-plugin-python
+
+#=================================================
+# NGINX CONFIGURATION
+#=================================================
+
+# Copie le fichier de config nginx
+sudo cp ../conf/nginx.conf /etc/nginx/conf.d/$domain.d/$app.conf
+# Modifie les variables dans le fichier de configuration nginx
+sudo sed -i "s@__PATH__@$path_url@g" /etc/nginx/conf.d/$domain.d/$app.conf
+sudo sed -i "s@__FINALPATH__@$final_path@g" /etc/nginx/conf.d/$domain.d/$app.conf
+sudo sed -i "s@__NAMETOCHANGE__@$app@g" /etc/nginx/conf.d/$domain.d/$app.conf
+if [ "$path_url" = "/" ]
+then
+	sudo sed -i "s@__PATH_NO_ROOT__@@g" /etc/nginx/conf.d/$domain.d/$app.conf
+else
+	sudo sed -i "s@__PATH_NO_ROOT__@$path_url@g" /etc/nginx/conf.d/$domain.d/$app.conf
+fi
+if [ $infcloud -eq 1 ]
+then	# Ajoute InfCloud dans la config Nginx
+	sudo sed -i "s@#INFCLOUD#@@g" /etc/nginx/conf.d/$domain.d/$app.conf
+fi
+
+#=================================================
+# CREATE DEDICATED USER
+#=================================================
+
+ynh_system_user_create $app	# Créer un utilisateur système dédié à l'app
+
+#=================================================
+# SPECIFIC SETUP
+#=================================================
+# INSTALL RADICALE IN A VIRTUALENV
+#=================================================
+
+# Init virtualenv
+sudo virtualenv /opt/yunohost/$app
+sudo /opt/yunohost/$app/bin/pip install radicale==$version python-ldap
+
+#=================================================
+# COPY FILES INTO $FINAL_PATH
+#=================================================
 
 # Crée le repertoire de destination et stocke son emplacement.
 sudo mkdir "$final_path"
 ynh_app_setting_set $app final_path $final_path
-
-
-
-# Check depends installation
-sudo apt-get install -y python-pip python-virtualenv python-dev libldap2-dev libsasl2-dev libssl-dev uwsgi uwsgi-plugin-python
-
-# Init virtualenv
-sudo virtualenv /opt/yunohost/$app
-sudo /opt/yunohost/$app/bin/pip install radicale==1.1.1 python-ldap
-
 
 # Copy files to the right place
 sudo mkdir -p $final_path/collections
@@ -72,24 +109,27 @@ sudo cp -a ../sources/ajouts_radicale/. "$final_path"
 # Le fichier regex.py est patché pour corrigé le commit destructeur e807c3d35bea9cfcfcacac83b1b17d748ea15a39 du 3/12/2015 qui arrête la lecture du fichier rights à la première occurence validée.
 sudo mv "$final_path/regex.py" /opt/yunohost/$app/lib/python*/site-packages/radicale/rights/regex.py
 sudo rm /opt/yunohost/$app/lib/python*/site-packages/radicale/rights/regex.pyc
-if [ "$infcloud" = "1" ]
+if [ $infcloud -eq 1 ]
 then	#Instal InfCloud
 	final_path_backup=$final_path	# Sauvegarde le contenu de $final_path
 	final_path=$final_path/infcloud	# Change final_path pour l'installation de infcloud
-	SETUP_SOURCE "infcloud.zip"	# Télécharge la source, décompresse et copie dans $final_path
+	SETUP_SOURCE_ZIP	# Télécharge la source, décompresse et copie dans $final_path
 	final_path=$final_path_backup	# Restaure le contenu de $final_path
 fi
 
-#Configuration Radicale
+#=================================================
+# CONFIGURE RADICALE
+#=================================================
+
 sudo mkdir -p /etc/$app
 sudo cp ../conf/config /etc/$app/
 sudo cp ../conf/logging /etc/$app/
 sudo cp ../conf/rights /etc/$app/
-sudo sed -i "s@__PATH__@$path@g" /etc/$app/config
+sudo sed -i "s@__PATH__@$path_url@g" /etc/$app/config
 sudo sed -i "s@__FINALPATH__@$final_path@g" /etc/$app/config
 STORE_MD5_CONFIG "config" "/etc/$app/config"	# Enregistre la somme de contrôle du fichier de config
 STORE_MD5_CONFIG "logging" "/etc/$app/logging"	# Enregistre la somme de contrôle du fichier de config
-if [ "$infcloud" = "1" ]
+if [ $infcloud -eq 1 ]
 then	#Configuration InfCloud
 	# Détermine la langue
 	case "$language" in
@@ -127,18 +167,20 @@ then	#Configuration InfCloud
 	ynh_app_setting_set $app language $language
 	sudo cp ../conf/config.js "$final_path/infcloud/"
 	sudo sed -i "s@__DOMAIN__@$domain@g" "$final_path/infcloud/config.js"
-	sudo sed -i "s@__PATH__@$path@g" "$final_path/infcloud/config.js"
+	sudo sed -i "s@__PATH__@$path_url@g" "$final_path/infcloud/config.js"
 	sudo sed -i "s@__LANG__@$language@g" "$final_path/infcloud/config.js"
 	sudo sed -i "s@__ADMIN__@$admin@g" "$final_path/infcloud/config.js"
 	sudo sed -i "s@__TIMEZONE__@$(cat /etc/timezone)@g" "$final_path/infcloud/config.js"
 	STORE_MD5_CONFIG "config.js" "$final_path/infcloud/config.js"	# Enregistre la somme de contrôle du fichier de config
 fi
 
-# Set permissions to radicale directory
-sudo useradd radicale -d /opt/yunohost/$app
+#=================================================
+# SET PERMISSIONS ON RADICALE'S DIRECTORIES
+#=================================================
+
+# sudo useradd radicale -d /opt/yunohost/$app
 sudo chown radicale: -R /opt/yunohost/$app
 
-# Set permissions to radicale directory
 sudo chown -R radicale: $final_path
 sudo mkdir -p /var/log/$app
 sudo touch /var/log/$app/$app.log
@@ -147,36 +189,22 @@ sudo chown radicale -R /var/log/$app
 sudo chmod 666 -R $final_path/default_collections
 sudo chmod 777 $final_path/default_collections $final_path/default_collections/USER
 
-# Copy uwsgi config
-sudo cp ../conf/radicale.ini /etc/uwsgi/apps-available/
-sudo ln -s /etc/uwsgi/apps-available/radicale.ini /etc/uwsgi/apps-enabled/
-
-# Modify Nginx configuration file and copy it to Nginx conf directory
-sudo sed -i "s@__PATH__@$path@g" ../conf/nginx.conf
-if [ "$path" = "/" ]
-then
-	sudo sed -i "s@__PATH_NO_ROOT__@@g" ../conf/nginx.conf
-else
-	sudo sed -i "s@__PATH_NO_ROOT__@$path@g" ../conf/nginx.conf
-fi
-sudo sed -i "s@__FINALPATH__@$final_path@g" ../conf/nginx.conf
-sudo sed -i "s@__NAMETOCHANGE__@$app@g" ../conf/nginx.conf
-sudo cp ../conf/nginx.conf /etc/nginx/conf.d/$domain.d/$app.conf
-if [ "$infcloud" = "1" ]
-then	# Ajoute InfCloud dans la config Nginx
-	sudo sed -i "s@#INFCLOUD#@@g" /etc/nginx/conf.d/$domain.d/$app.conf
-fi
-
-if [ "$infcloud" = "1" ]
-then
-	POOL_FPM	# Créer le fichier de configuration du pool php-fpm et le configure.
-fi
-
 # Fix permission
 sudo chmod 755 /etc/$app/
 sudo find /opt/yunohost/$app/ -type d -exec chmod 2755 {} \;
 sudo find /opt/yunohost/$app/ -type f -exec chmod g+r,o+r {} \;
 sudo chmod 644 /etc/$app/*
+
+#=================================================
+# CONFIGURE UWSGI FOR RADICALE
+#=================================================
+
+sudo cp ../conf/radicale.ini /etc/uwsgi/apps-available/
+sudo ln -s /etc/uwsgi/apps-available/radicale.ini /etc/uwsgi/apps-enabled/
+
+#=================================================
+# GENERATE CALENDARS AND ADDRESS BOOKS FOR ALL USERS
+#=================================================
 
 # Créer les calendriers et carnets d'adresses par défaut des utilisateurs.
 while read user	#USER en majuscule est une variable système, à éviter.
@@ -186,25 +214,55 @@ do
 done <<< "$(sudo yunohost user list | grep username | cut -d ":" -f 2 | cut -c 2-)"	# Liste les utilisateurs et supprime l'espace après username:
 # Le triple chevron <<< permet de prendre la sortie de commande en entrée de boucle.
 
-# Configuration de logrotate
-sed -i "s@__NAME__@$app@g" ../conf/logrotate
-sudo cp ../conf/logrotate /etc/logrotate.d/$app
+#=================================================
+# ENABLE UWSGI SERVICE IN ADMIN PANEL
+#=================================================
 
-## Reload Nginx and regenerate SSOwat conf
-sudo service nginx reload
-sudo service uwsgi restart
-sudo yunohost service add uwsgi -l /var/log/uwsgi/app/radicale.log
-if [ "$infcloud" = "1" ]
-then	# /infcloud vient se rajouter à l'adresse de radicale pour y être associé sur le portail.
-	ynh_app_setting_set $app path $path/infcloud	# Remplace radicale par InfCloud dans le portail Yunohost
-	ynh_app_setting_set $app protected_uris "/"	# Protège l'accès à infcloud
-	ynh_app_setting_set $app unprotected_regex "$domain_regex$path"	# Radicale est accessible librement (pour l'accès distant aux ressources)
-else	# Si seul radicale est installé.
-	ynh_app_setting_set $app unprotected_uris "/"	# Radicale est accessible librement (pour l'accès distant aux ressources)
-fi
+sudo systemctl restart uwsgi
+# Ajoute le service au monitoring de Yunohost.
+sudo yunohost service add uwsgi --log "/var/log/uwsgi/app/radicale.log"
 
-sudo yunohost app ssowatconf
+#=================================================
+# PREPARE THE HOOKS
+#=================================================
 
 # Modification des hook pour la création des collections par défaut des nouveaux utilisateurs. Et leur suppression
 sudo sed -i "s@__FINALPATH__@$final_path@g" ../hooks/post_user_create
 sudo sed -i "s@__FINALPATH__@$final_path@g" ../hooks/post_user_delete
+
+#=================================================
+# GENERIC FINALISATION
+#=================================================
+# SETUP SSOWAT
+#=================================================
+
+if [ $infcloud -eq 1 ]
+then	# /infcloud vient se rajouter à l'adresse de radicale pour y être associé sur le portail.
+	ynh_app_setting_set $app path $path_url/infcloud	# Remplace radicale par InfCloud dans le portail Yunohost
+	ynh_app_setting_set $app protected_uris "/"	# Protège l'accès à infcloud
+	domain_regex=$(echo "$domain" | sed 's@-@.@g')
+	ynh_app_setting_set $app unprotected_regex "$domain_regex$path_url"	# Radicale est accessible librement (pour l'accès distant aux ressources)
+else	# Si seul radicale est installé.
+	ynh_app_setting_set $app unprotected_uris "/"	# Radicale est accessible librement (pour l'accès distant aux ressources)
+fi
+
+#=================================================
+# SETUP LOGROTATE
+#=================================================
+
+ynh_use_logrotate
+
+#=================================================
+# PHP-FPM CONFIGURATION
+#=================================================
+
+if [ $infcloud -eq 1 ]
+then
+	POOL_FPM	# Créer le fichier de configuration du pool php-fpm et le configure.
+fi
+
+#=================================================
+# RELOAD NGINX
+#=================================================
+
+sudo systemctl reload nginx

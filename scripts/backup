@@ -1,43 +1,81 @@
 #!/bin/bash
 
+#=================================================
+# GENERIC STARTING
+#=================================================
+# MANAGE FAILURE OF THE SCRIPT
+#=================================================
+
+# Exit on command errors and treat unset variables as an error
+set -eu
+
+#=================================================
+# IMPORT GENERIC HELPERS
+#=================================================
+
+if [ ! -e .fonctions ]; then
+	# Rapatrie le fichier de fonctions si il n'est pas dans le dossier courant
+	sudo cp ../settings/scripts/.fonctions ./.fonctions
+	sudo chmod a+rx .fonctions
+fi
+source .fonctions
+source /usr/share/yunohost/helpers
+
+#=================================================
+# LOAD SETTINGS
+#=================================================
+
 # Récupère les infos de l'application.
 app=$YNH_APP_INSTANCE_NAME
-
-# Source app helpers
-source /usr/share/yunohost/helpers
 
 final_path=$(ynh_app_setting_get $app final_path)
 domain=$(ynh_app_setting_get $app domain)
 infcloud=$(ynh_app_setting_get $app infcloud)
 
+#=================================================
+# STANDARD BACKUP STEPS
+#=================================================
+# BACKUP OF THE MAIN DIR OF THE APP
+#=================================================
 
-# The parameter $1 is the backup directory location
-# which will be compressed afterward
-backup_dir=$1/apps/$app
-sudo mkdir -p "$backup_dir"
+CHECK_SIZE "$final_path"
+ynh_backup "$final_path" "sources"
+CHECK_SIZE "/opt/yunohost/$app"
+ynh_backup "/opt/yunohost/$app" "virtualenv"
 
-# Backup sources & data
-sudo cp -a $final_path/. $backup_dir/sources
+#=================================================
+# BACKUP OF THE NGINX CONFIGURATION
+#=================================================
 
-# Backup virtualenv
-sudo cp -a /opt/yunohost/$app/. $backup_dir/virtualenv
+ynh_backup "/etc/nginx/conf.d/$domain.d/$app.conf" "nginx.conf"
 
-# Backup uwsgi config
-sudo cp -a /etc/uwsgi/apps-available/radicale.ini $backup_dir/uwsgi_conf
+#=================================================
+# BACKUP OF THE PHP-FPM CONFIGURATION
+#=================================================
 
-# Copy Nginx and YunoHost parameters to make the script "standalone"
-sudo cp -a /etc/yunohost/apps/$app/. $backup_dir/yunohost
-sudo cp -a /etc/nginx/conf.d/$domain.d/$app.conf $backup_dir/nginx.conf
-
-# Copy radicale configuration
-sudo cp -a /etc/$app/. $backup_dir/etc
-
-# Copie la configuration de logrotate
-sudo cp -a /etc/logrotate.d/$app $backup_dir/logrotate
-
-# Copy dedicated php-fpm process to backup folder
-if [ "$infcloud" = "1" ]
+if [ $infcloud -eq 1 ]
 then
-	sudo cp -a /etc/php5/fpm/pool.d/$app.conf $backup_dir/php-fpm.conf
-	sudo cp -a /etc/php5/fpm/conf.d/20-$app.ini $backup_dir/php-fpm.ini
+	ynh_backup "/etc/php5/fpm/pool.d/$app.conf" "php-fpm.conf"
+	ynh_backup "/etc/php5/fpm/conf.d/20-$app.ini" "php-fpm.ini"
 fi
+
+#=================================================
+# SPECIFIC BACKUP
+#=================================================
+# BACKUP OF THE UWSGI CONFIG
+#=================================================
+
+ynh_backup "/etc/uwsgi/apps-available/radicale.ini" "uwsgi_conf"
+
+#=================================================
+# BACKUP OF THE RADICALE CONFIGURATION
+#=================================================
+
+CHECK_SIZE "/etc/$app"
+ynh_backup "/etc/$app" "etc"
+
+#=================================================
+# BACKUP OF THE LOGROTATE CONFIGURATION
+#=================================================
+
+ynh_backup "/etc/logrotate.d/$app" "logrotate"

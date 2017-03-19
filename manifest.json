@@ -11,7 +11,7 @@
 	},
 	"version": "1.1.1",
 	"url": "http://radicale.org",
-	"license": "free",
+	"license": "GPL-3.0, AGPL-3.0",
 	"maintainer": {
 		"name": "Maniack Crudelis",
 		"email": "maniackc_dev@crudelis.fr"
@@ -53,12 +53,12 @@
 			},
 			{
 				"name": "infcloud",
+				"type": "boolean",
 				"ask": {
 					"en": "Install InfCloud web interface?",
 					"fr": "Installer l'interface web InfCloud?"
 				},
-				"choices": ["Yes", "No"],
-				"default": "Yes"
+				"default": true
 			},
 			{
 				"name": "language",
