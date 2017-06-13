@@ -27,13 +27,13 @@ language=$YNH_APP_ARG_LANGUAGE
 
 app=$YNH_APP_INSTANCE_NAME
 
-version=1.1.1
+version=$(grep '\"version\": ' ../manifest.json | cut -d '"' -f 4)	# Retrieve the version number in the manifest file.
+
 
 #=================================================
 # CHECK IF THE APP CAN BE INSTALLED WITH THIS ARGS
 #=================================================
 
-CHECK_USER "$admin"	# Vérifie la validité de l'user admin
 path_url=$(ynh_normalize_url_path $path_url)	# Vérifie et corrige la syntaxe du path.
 CHECK_DOMAINPATH	# Vérifie la disponibilité du path et du domaine.
 CHECK_FINALPATH	# Vérifie que le dossier de destination n'est pas déjà utilisé.
@@ -60,22 +60,18 @@ ynh_install_app_dependencies python-pip python-virtualenv python-dev libldap2-de
 # NGINX CONFIGURATION
 #=================================================
 
-# Copie le fichier de config nginx
-sudo cp ../conf/nginx.conf /etc/nginx/conf.d/$domain.d/$app.conf
-# Modifie les variables dans le fichier de configuration nginx
-sudo sed -i "s@__PATH__@$path_url@g" /etc/nginx/conf.d/$domain.d/$app.conf
-sudo sed -i "s@__FINALPATH__@$final_path@g" /etc/nginx/conf.d/$domain.d/$app.conf
-sudo sed -i "s@__NAMETOCHANGE__@$app@g" /etc/nginx/conf.d/$domain.d/$app.conf
+ynh_nginx_config
 if [ "$path_url" = "/" ]
 then
-	sudo sed -i "s@__PATH_NO_ROOT__@@g" /etc/nginx/conf.d/$domain.d/$app.conf
+	ynh_replace_string "__PATH_NO_ROOT__" "" /etc/nginx/conf.d/$domain.d/$app.conf
 else
-	sudo sed -i "s@__PATH_NO_ROOT__@$path_url@g" /etc/nginx/conf.d/$domain.d/$app.conf
+	ynh_replace_string "__PATH_NO_ROOT__" "$path_url" /etc/nginx/conf.d/$domain.d/$app.conf
 fi
 if [ $infcloud -eq 1 ]
 then	# Ajoute InfCloud dans la config Nginx
-	sudo sed -i "s@#INFCLOUD#@@g" /etc/nginx/conf.d/$domain.d/$app.conf
+	ynh_replace_string "#INFCLOUD#" "" /etc/nginx/conf.d/$domain.d/$app.conf
 fi
+ynh_store_file_checksum "$finalnginxconf"
 
 #=================================================
 # CREATE DEDICATED USER
@@ -105,15 +101,15 @@ ynh_app_setting_set $app final_path $final_path
 sudo mkdir -p $final_path/collections
 sudo cp ../conf/radicale.wsgi $final_path
 # Copie les fichiers additionnels ou modifiés.
-sudo cp -a ../sources/ajouts_radicale/. "$final_path"
+sudo cp -a ../sources/extra_files_radicale/. "$final_path"
 # Le fichier regex.py est patché pour corrigé le commit destructeur e807c3d35bea9cfcfcacac83b1b17d748ea15a39 du 3/12/2015 qui arrête la lecture du fichier rights à la première occurence validée.
 sudo mv "$final_path/regex.py" /opt/yunohost/$app/lib/python*/site-packages/radicale/rights/regex.py
-sudo rm /opt/yunohost/$app/lib/python*/site-packages/radicale/rights/regex.pyc
+ynh_secure_remove "/opt/yunohost/$app/lib/python*/site-packages/radicale/rights/regex.pyc"
 if [ $infcloud -eq 1 ]
 then	#Instal InfCloud
 	final_path_backup=$final_path	# Sauvegarde le contenu de $final_path
 	final_path=$final_path/infcloud	# Change final_path pour l'installation de infcloud
-	SETUP_SOURCE_ZIP	# Télécharge la source, décompresse et copie dans $final_path
+	ynh_setup_source "$final_path"	# Télécharge la source, décompresse et copie dans $final_path
 	final_path=$final_path_backup	# Restaure le contenu de $final_path
 fi
 
@@ -125,10 +121,10 @@ sudo mkdir -p /etc/$app
 sudo cp ../conf/config /etc/$app/
 sudo cp ../conf/logging /etc/$app/
 sudo cp ../conf/rights /etc/$app/
-sudo sed -i "s@__PATH__@$path_url@g" /etc/$app/config
-sudo sed -i "s@__FINALPATH__@$final_path@g" /etc/$app/config
-STORE_MD5_CONFIG "config" "/etc/$app/config"	# Enregistre la somme de contrôle du fichier de config
-STORE_MD5_CONFIG "logging" "/etc/$app/logging"	# Enregistre la somme de contrôle du fichier de config
+ynh_replace_string "__PATH__" "$path_url" /etc/$app/config
+ynh_replace_string "__FINALPATH__" "$final_path" /etc/$app/config
+ynh_store_file_checksum "/etc/$app/config"	# Enregistre la somme de contrôle du fichier de config
+ynh_store_file_checksum "/etc/$app/logging"	# Enregistre la somme de contrôle du fichier de config
 if [ $infcloud -eq 1 ]
 then	#Configuration InfCloud
 	# Détermine la langue
@@ -166,12 +162,12 @@ then	#Configuration InfCloud
 	esac
 	ynh_app_setting_set $app language $language
 	sudo cp ../conf/config.js "$final_path/infcloud/"
-	sudo sed -i "s@__DOMAIN__@$domain@g" "$final_path/infcloud/config.js"
-	sudo sed -i "s@__PATH__@$path_url@g" "$final_path/infcloud/config.js"
-	sudo sed -i "s@__LANG__@$language@g" "$final_path/infcloud/config.js"
-	sudo sed -i "s@__ADMIN__@$admin@g" "$final_path/infcloud/config.js"
-	sudo sed -i "s@__TIMEZONE__@$(cat /etc/timezone)@g" "$final_path/infcloud/config.js"
-	STORE_MD5_CONFIG "config.js" "$final_path/infcloud/config.js"	# Enregistre la somme de contrôle du fichier de config
+	ynh_replace_string "__DOMAIN__" "$domain" "$final_path/infcloud/config.js"
+	ynh_replace_string "__PATH__" "$path_url" "$final_path/infcloud/config.js"
+	ynh_replace_string "__LANG__" "$language" "$final_path/infcloud/config.js"
+	ynh_replace_string "__ADMIN__" "$admin" "$final_path/infcloud/config.js"
+	ynh_replace_string "__TIMEZONE__" "$(cat /etc/timezone)" "$final_path/infcloud/config.js"
+	ynh_store_file_checksum "$final_path/infcloud/config.js"	# Enregistre la somme de contrôle du fichier de config
 fi
 
 #=================================================
@@ -227,8 +223,8 @@ sudo yunohost service add uwsgi --log "/var/log/uwsgi/app/radicale.log"
 #=================================================
 
 # Modification des hook pour la création des collections par défaut des nouveaux utilisateurs. Et leur suppression
-sudo sed -i "s@__FINALPATH__@$final_path@g" ../hooks/post_user_create
-sudo sed -i "s@__FINALPATH__@$final_path@g" ../hooks/post_user_delete
+ynh_replace_string "__FINALPATH__" "$final_path" ../hooks/post_user_create
+ynh_replace_string "__FINALPATH__" "$final_path" ../hooks/post_user_delete
 
 #=================================================
 # GENERIC FINALISATION
@@ -258,7 +254,7 @@ ynh_use_logrotate
 
 if [ $infcloud -eq 1 ]
 then
-	POOL_FPM	# Créer le fichier de configuration du pool php-fpm et le configure.
+	ynh_fpm_config	# Créer le fichier de configuration du pool php-fpm et le configure.
 fi
 
 #=================================================

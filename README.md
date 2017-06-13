@@ -23,3 +23,7 @@ Le script installe les paquets *libjansson4* *libldap2-dev* *libmatheval1* *libp
 sudo yunohost app upgrade --verbose radicale -u https://github.com/YunoHost-Apps/radicale_ynh
 
 **Multi-utilisateur:** Oui, avec support ldap.
+
+**Voir l'état du package:**  
+*[Dernier rapport hebdomadaire](https://forum.yunohost.org/t/rapport-hebdomadaire-dintegration-continue/2297)*  
+*[Dernier test d'intégration continue](https://ci-apps.yunohost.org/jenkins/job/radicale%20%28Community%29/lastBuild/consoleFull)*

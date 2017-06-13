@@ -1,2 +1,6 @@
-SOURCE_URL>https://www.inf-it.com/InfCloud_0.13.1.zip
+SOURCE_URL=https://www.inf-it.com/InfCloud_0.13.1.zip
 SOURCE_SUM=6ffb1b3b9b7f54137723c6c13e9c5635
+SOURCE_SUM_PRG=md5sum
+SOURCE_FORMAT=zip
+SOURCE_IN_SUBDIR=true
+SOURCE_FILENAME=

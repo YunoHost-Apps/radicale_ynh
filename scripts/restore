@@ -49,25 +49,21 @@ test ! -d "/opt/yunohost/$app" \
 # RESTORE OF THE NGINX CONFIGURATION
 #=================================================
 
-conf=/etc/nginx/conf.d/$domain.d/$app.conf
-if [ -f $conf ]; then
-	ynh_die "There is already a nginx conf file at this path: $conf "
-fi
-sudo cp -a ./nginx.conf $conf
-
-#=================================================
-# RESTORE OF THE MAIN DIR OF THE APP
-#=================================================
-
-sudo cp -a ./sources/. $final_path
-sudo mkdir -p /opt/yunohost/$app
-sudo cp -a ./virtualenv/. /opt/yunohost/$app/
+ynh_restore_file "/etc/nginx/conf.d/$domain.d/$app.conf"
 
 #=================================================
 # INSTALL DEPENDENCIES
 #=================================================
 
 ynh_install_app_dependencies python-pip python-virtualenv python-dev libldap2-dev libsasl2-dev libssl-dev uwsgi uwsgi-plugin-python
+
+#=================================================
+# RESTORE OF THE MAIN DIR OF THE APP
+#=================================================
+
+ynh_restore_file "$final_path"
+sudo mkdir -p /opt/yunohost
+ynh_restore_file "/opt/yunohost/$app"
 
 #=================================================
 # RECREATE OF THE DEDICATED USER
@@ -81,8 +77,8 @@ ynh_system_user_create $app	# Recreate the dedicated user, if not exist
 
 if [ $infcloud -eq 1 ]
 then
-	sudo cp -a ./php-fpm.conf /etc/php5/fpm/pool.d/$app.conf
-	sudo cp -a ./php-fpm.ini /etc/php5/fpm/conf.d/20-$app.ini
+	ynh_restore_file "/etc/php5/fpm/pool.d/$app.conf"
+	ynh_restore_file "/etc/php5/fpm/conf.d/20-$app.ini"
 	sudo systemctl reload php5-fpm
 fi
 
@@ -103,20 +99,20 @@ sudo chown radicale -R /var/log/$app
 # RESTORE THE UWSGI CONFIG
 #=================================================
 
-sudo cp -a ./uwsgi_conf /etc/uwsgi/apps-available/radicale.ini
+ynh_restore_file "/etc/uwsgi/apps-available/radicale.ini"
 sudo ln -s /etc/uwsgi/apps-available/radicale.ini /etc/uwsgi/apps-enabled/
 
 #=================================================
 # RESTORE THE RADICALE CONFIGURATION
 #=================================================
 
-sudo cp -a ./etc /etc/$app
+ynh_restore_file "/etc/$app"
 
 #=================================================
 # BACKUP OF THE LOGROTATE CONFIGURATION
 #=================================================
 
-sudo cp -a ./logrotate /etc/logrotate.d/$app
+ynh_restore_file "/etc/logrotate.d/$app"
 
 #=================================================
 # GENERIC FINALISATION
@@ -125,4 +121,5 @@ sudo cp -a ./logrotate /etc/logrotate.d/$app
 #=================================================
 
 sudo systemctl restart uwsgi
+sudo journalctl -xn
 sudo systemctl reload nginx
