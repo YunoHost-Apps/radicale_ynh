@@ -237,7 +237,7 @@ then	# /infcloud vient se rajouter à l'adresse de radicale pour y être associ�
 	ynh_app_setting_set $app path $path_url/infcloud	# Remplace radicale par InfCloud dans le portail Yunohost
 	ynh_app_setting_set $app protected_uris "/"	# Protège l'accès à infcloud
 	domain_regex=$(echo "$domain" | sed 's@-@.@g')
-	ynh_app_setting_set $app unprotected_regex "$domain_regex$path_url"	# Radicale est accessible librement (pour l'accès distant aux ressources)
+	ynh_app_setting_set $app skipped_regex "$domain_regex$path_url"	# Radicale est accessible librement (pour l'accès distant aux ressources)
 else	# Si seul radicale est installé.
 	ynh_app_setting_set $app unprotected_uris "/"	# Radicale est accessible librement (pour l'accès distant aux ressources)
 fi
