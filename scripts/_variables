@@ -1,0 +1,4 @@
+#!/bin/bash
+
+# Dependencies
+app_depencencies="python-pip python-virtualenv python-dev libldap2-dev libsasl2-dev libssl-dev uwsgi uwsgi-plugin-python"

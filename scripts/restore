@@ -1,25 +1,27 @@
 #!/bin/bash
 
 #=================================================
-# GENERIC STARTING
-#=================================================
-# MANAGE FAILURE OF THE SCRIPT
-#=================================================
-
-# Exit on command errors and treat unset variables as an error
-set -eu
-
+# GENERIC START
 #=================================================
 # IMPORT GENERIC HELPERS
 #=================================================
 
 if [ ! -e _common.sh ]; then
-	# Rapatrie le fichier de fonctions si il n'est pas dans le dossier courant
-	sudo cp ../settings/scripts/_common.sh ./_common.sh
-	sudo chmod a+rx _common.sh
+	# Get the _common.sh file if it's not in the current directory
+	cp ../settings/scripts/_common.sh ./_common.sh
+	chmod a+rx _common.sh
 fi
 source _common.sh
 source /usr/share/yunohost/helpers
+# Load common variables for all scripts.
+source ../settings/scripts/_variables
+
+#=================================================
+# MANAGE SCRIPT FAILURE
+#=================================================
+
+# Exit if an error occurs during the execution of the script
+ynh_abort_if_errors
 
 #=================================================
 # LOAD SETTINGS
@@ -36,7 +38,7 @@ path_url=$(ynh_app_setting_get $app path)
 # CHECK IF THE APP CAN BE RESTORED
 #=================================================
 
-sudo yunohost app checkurl "${domain}${path_url}" -a "$app" \
+yunohost app checkurl "${domain}${path_url}" -a "$app" \
 	|| ynh_die "Path not available: ${domain}${path_url}"
 test ! -d $final_path \
 	|| ynh_die "There is already a directory: $final_path "
@@ -55,14 +57,14 @@ ynh_restore_file "/etc/nginx/conf.d/$domain.d/$app.conf"
 # INSTALL DEPENDENCIES
 #=================================================
 
-ynh_install_app_dependencies python-pip python-virtualenv python-dev libldap2-dev libsasl2-dev libssl-dev uwsgi uwsgi-plugin-python
+ynh_install_app_dependencies $app_depencencies
 
 #=================================================
 # RESTORE OF THE MAIN DIR OF THE APP
 #=================================================
 
 ynh_restore_file "$final_path"
-sudo mkdir -p /opt/yunohost
+mkdir -p /opt/yunohost
 ynh_restore_file "/opt/yunohost/$app"
 
 #=================================================
@@ -79,7 +81,7 @@ if [ $infcloud -eq 1 ]
 then
 	ynh_restore_file "/etc/php5/fpm/pool.d/$app.conf"
 	ynh_restore_file "/etc/php5/fpm/conf.d/20-$app.ini"
-	sudo systemctl reload php5-fpm
+	systemctl reload php5-fpm
 fi
 
 #=================================================
@@ -88,19 +90,19 @@ fi
 # RESTORE USER RIGHTS
 #=================================================
 
-sudo chown radicale: -R /opt/yunohost/$app
+chown radicale: -R /opt/yunohost/$app
 
-sudo chown -R radicale: $final_path
-sudo mkdir -p /var/log/$app
-sudo touch /var/log/$app/$app.log
-sudo chown radicale -R /var/log/$app
+chown -R radicale: $final_path
+mkdir -p /var/log/$app
+touch /var/log/$app/$app.log
+chown radicale -R /var/log/$app
 
 #=================================================
 # RESTORE THE UWSGI CONFIG
 #=================================================
 
 ynh_restore_file "/etc/uwsgi/apps-available/radicale.ini"
-sudo ln -s /etc/uwsgi/apps-available/radicale.ini /etc/uwsgi/apps-enabled/
+ln -s /etc/uwsgi/apps-available/radicale.ini /etc/uwsgi/apps-enabled/
 
 #=================================================
 # RESTORE THE RADICALE CONFIGURATION
@@ -120,6 +122,5 @@ ynh_restore_file "/etc/logrotate.d/$app"
 # RELOAD NGINX AND UWSGI
 #=================================================
 
-sudo systemctl restart uwsgi
-sudo journalctl -xn
-sudo systemctl reload nginx
+systemctl restart uwsgi
+systemctl reload nginx

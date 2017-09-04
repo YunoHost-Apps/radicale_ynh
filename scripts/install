@@ -8,6 +8,8 @@
 
 source _common.sh
 source /usr/share/yunohost/helpers
+# Load common variables for all scripts.
+source _variables
 
 #=================================================
 # MANAGE FAILURE OF THE SCRIPT
@@ -34,9 +36,16 @@ version=$(grep '\"version\": ' ../manifest.json | cut -d '"' -f 4)	# Retrieve th
 # CHECK IF THE APP CAN BE INSTALLED WITH THIS ARGS
 #=================================================
 
-path_url=$(ynh_normalize_url_path $path_url)	# Vérifie et corrige la syntaxe du path.
-CHECK_DOMAINPATH	# Vérifie la disponibilité du path et du domaine.
-CHECK_FINALPATH	# Vérifie que le dossier de destination n'est pas déjà utilisé.
+final_path=/var/www/$app
+test ! -e "$final_path" || ynh_die "This path already contains a folder"
+
+# Normalize the url path syntax
+path_url=$(ynh_normalize_url_path $path_url)
+
+# Check web path availability
+ynh_webpath_available $domain $path_url
+# Register (book) web path
+ynh_webpath_register $app $domain $path_url
 
 #=================================================
 # STORE SETTINGS FROM MANIFEST
@@ -54,13 +63,13 @@ ynh_app_setting_set $app version $version
 # INSTALL DEPENDENCIES
 #=================================================
 
-ynh_install_app_dependencies python-pip python-virtualenv python-dev libldap2-dev libsasl2-dev libssl-dev uwsgi uwsgi-plugin-python
+ynh_install_app_dependencies $app_depencencies
 
 #=================================================
 # NGINX CONFIGURATION
 #=================================================
 
-ynh_nginx_config
+ynh_add_nginx_config
 if [ "$path_url" = "/" ]
 then
 	ynh_replace_string "__PATH_NO_ROOT__" "" /etc/nginx/conf.d/$domain.d/$app.conf
@@ -86,24 +95,24 @@ ynh_system_user_create $app	# Créer un utilisateur système dédié à l'app
 #=================================================
 
 # Init virtualenv
-sudo virtualenv /opt/yunohost/$app
-sudo /opt/yunohost/$app/bin/pip install radicale==$version python-ldap
+virtualenv /opt/yunohost/$app
+/opt/yunohost/$app/bin/pip install radicale==$version python-ldap
 
 #=================================================
 # COPY FILES INTO $FINAL_PATH
 #=================================================
 
 # Crée le repertoire de destination et stocke son emplacement.
-sudo mkdir "$final_path"
+mkdir "$final_path"
 ynh_app_setting_set $app final_path $final_path
 
 # Copy files to the right place
-sudo mkdir -p $final_path/collections
-sudo cp ../conf/radicale.wsgi $final_path
+mkdir -p $final_path/collections
+cp ../conf/radicale.wsgi $final_path
 # Copie les fichiers additionnels ou modifiés.
-sudo cp -a ../sources/extra_files_radicale/. "$final_path"
+cp -a ../sources/extra_files_radicale/. "$final_path"
 # Le fichier regex.py est patché pour corrigé le commit destructeur e807c3d35bea9cfcfcacac83b1b17d748ea15a39 du 3/12/2015 qui arrête la lecture du fichier rights à la première occurence validée.
-sudo mv "$final_path/regex.py" /opt/yunohost/$app/lib/python*/site-packages/radicale/rights/regex.py
+mv "$final_path/regex.py" /opt/yunohost/$app/lib/python*/site-packages/radicale/rights/regex.py
 ynh_secure_remove "/opt/yunohost/$app/lib/python*/site-packages/radicale/rights/regex.pyc"
 if [ $infcloud -eq 1 ]
 then	#Instal InfCloud
@@ -117,10 +126,10 @@ fi
 # CONFIGURE RADICALE
 #=================================================
 
-sudo mkdir -p /etc/$app
-sudo cp ../conf/config /etc/$app/
-sudo cp ../conf/logging /etc/$app/
-sudo cp ../conf/rights /etc/$app/
+mkdir -p /etc/$app
+cp ../conf/config /etc/$app/
+cp ../conf/logging /etc/$app/
+cp ../conf/rights /etc/$app/
 ynh_replace_string "__PATH__" "$path_url" /etc/$app/config
 ynh_replace_string "__FINALPATH__" "$final_path" /etc/$app/config
 ynh_store_file_checksum "/etc/$app/config"	# Enregistre la somme de contrôle du fichier de config
@@ -161,7 +170,7 @@ then	#Configuration InfCloud
 		;;
 	esac
 	ynh_app_setting_set $app language $language
-	sudo cp ../conf/config.js "$final_path/infcloud/"
+	cp ../conf/config.js "$final_path/infcloud/"
 	ynh_replace_string "__DOMAIN__" "$domain" "$final_path/infcloud/config.js"
 	ynh_replace_string "__PATH__" "$path_url" "$final_path/infcloud/config.js"
 	ynh_replace_string "__LANG__" "$language" "$final_path/infcloud/config.js"
@@ -174,29 +183,29 @@ fi
 # SET PERMISSIONS ON RADICALE'S DIRECTORIES
 #=================================================
 
-# sudo useradd radicale -d /opt/yunohost/$app
-sudo chown radicale: -R /opt/yunohost/$app
+# useradd radicale -d /opt/yunohost/$app
+chown radicale: -R /opt/yunohost/$app
 
-sudo chown -R radicale: $final_path
-sudo mkdir -p /var/log/$app
-sudo touch /var/log/$app/$app.log
-sudo chown radicale -R /var/log/$app
+chown -R radicale: $final_path
+mkdir -p /var/log/$app
+touch /var/log/$app/$app.log
+chown radicale -R /var/log/$app
 # Droit par défaut des dossiers de collections utilisateurs, tels qu'ils sont créés par radicale.
-sudo chmod 666 -R $final_path/default_collections
-sudo chmod 777 $final_path/default_collections $final_path/default_collections/USER
+chmod 666 -R $final_path/default_collections
+chmod 777 $final_path/default_collections $final_path/default_collections/USER
 
 # Fix permission
-sudo chmod 755 /etc/$app/
-sudo find /opt/yunohost/$app/ -type d -exec chmod 2755 {} \;
-sudo find /opt/yunohost/$app/ -type f -exec chmod g+r,o+r {} \;
-sudo chmod 644 /etc/$app/*
+chmod 755 /etc/$app/
+find /opt/yunohost/$app/ -type d -exec chmod 2755 {} \;
+find /opt/yunohost/$app/ -type f -exec chmod g+r,o+r {} \;
+chmod 644 /etc/$app/*
 
 #=================================================
 # CONFIGURE UWSGI FOR RADICALE
 #=================================================
 
-sudo cp ../conf/radicale.ini /etc/uwsgi/apps-available/
-sudo ln -s /etc/uwsgi/apps-available/radicale.ini /etc/uwsgi/apps-enabled/
+cp ../conf/radicale.ini /etc/uwsgi/apps-available/
+ln -s /etc/uwsgi/apps-available/radicale.ini /etc/uwsgi/apps-enabled/
 
 #=================================================
 # GENERATE CALENDARS AND ADDRESS BOOKS FOR ALL USERS
@@ -205,18 +214,18 @@ sudo ln -s /etc/uwsgi/apps-available/radicale.ini /etc/uwsgi/apps-enabled/
 # Créer les calendriers et carnets d'adresses par défaut des utilisateurs.
 while read user	#USER en majuscule est une variable système, à éviter.
 do
-		sudo cp -a $final_path/default_collections/USER $final_path/collections/$user
-		sudo cp -a $final_path/default_collections/USER.props $final_path/collections/$user.props
-done <<< "$(sudo yunohost user list | grep username | cut -d ":" -f 2 | cut -c 2-)"	# Liste les utilisateurs et supprime l'espace après username:
+		cp -a $final_path/default_collections/USER $final_path/collections/$user
+		cp -a $final_path/default_collections/USER.props $final_path/collections/$user.props
+done <<< "$(yunohost user list | grep username | cut -d ":" -f 2 | cut -c 2-)"	# Liste les utilisateurs et supprime l'espace après username:
 # Le triple chevron <<< permet de prendre la sortie de commande en entrée de boucle.
 
 #=================================================
 # ENABLE UWSGI SERVICE IN ADMIN PANEL
 #=================================================
 
-sudo systemctl restart uwsgi
+systemctl restart uwsgi
 # Ajoute le service au monitoring de Yunohost.
-sudo yunohost service add uwsgi --log "/var/log/uwsgi/app/radicale.log"
+yunohost service add uwsgi --log "/var/log/uwsgi/app/radicale.log"
 
 #=================================================
 # PREPARE THE HOOKS
@@ -254,11 +263,11 @@ ynh_use_logrotate
 
 if [ $infcloud -eq 1 ]
 then
-	ynh_fpm_config	# Créer le fichier de configuration du pool php-fpm et le configure.
+	ynh_add_fpm_config	# Créer le fichier de configuration du pool php-fpm et le configure.
 fi
 
 #=================================================
 # RELOAD NGINX
 #=================================================
 
-sudo systemctl reload nginx
+systemctl reload nginx
