@@ -113,7 +113,6 @@ cp ../conf/radicale.wsgi $final_path
 cp -a ../sources/extra_files_radicale/. "$final_path"
 # Le fichier regex.py est patché pour corrigé le commit destructeur e807c3d35bea9cfcfcacac83b1b17d748ea15a39 du 3/12/2015 qui arrête la lecture du fichier rights à la première occurence validée.
 mv "$final_path/regex.py" /opt/yunohost/$app/lib/python*/site-packages/radicale/rights/regex.py
-ynh_secure_remove "/opt/yunohost/$app/lib/python*/site-packages/radicale/rights/regex.pyc"
 if [ $infcloud -eq 1 ]
 then	#Instal InfCloud
 	final_path_backup=$final_path	# Sauvegarde le contenu de $final_path
@@ -130,7 +129,7 @@ mkdir -p /etc/$app
 cp ../conf/config /etc/$app/
 cp ../conf/logging /etc/$app/
 cp ../conf/rights /etc/$app/
-ynh_replace_string "__PATH__" "$path_url" /etc/$app/config
+ynh_replace_string "__PATH__" "${path_url%/}" /etc/$app/config
 ynh_replace_string "__FINALPATH__" "$final_path" /etc/$app/config
 ynh_store_file_checksum "/etc/$app/config"	# Enregistre la somme de contrôle du fichier de config
 ynh_store_file_checksum "/etc/$app/logging"	# Enregistre la somme de contrôle du fichier de config
@@ -172,7 +171,7 @@ then	#Configuration InfCloud
 	ynh_app_setting_set $app language $language
 	cp ../conf/config.js "$final_path/infcloud/"
 	ynh_replace_string "__DOMAIN__" "$domain" "$final_path/infcloud/config.js"
-	ynh_replace_string "__PATH__" "$path_url" "$final_path/infcloud/config.js"
+	ynh_replace_string "__PATH__" "${path_url%/}" "$final_path/infcloud/config.js"
 	ynh_replace_string "__LANG__" "$language" "$final_path/infcloud/config.js"
 	ynh_replace_string "__ADMIN__" "$admin" "$final_path/infcloud/config.js"
 	ynh_replace_string "__TIMEZONE__" "$(cat /etc/timezone)" "$final_path/infcloud/config.js"
@@ -243,7 +242,7 @@ ynh_replace_string "__FINALPATH__" "$final_path" ../hooks/post_user_delete
 
 if [ $infcloud -eq 1 ]
 then	# /infcloud vient se rajouter à l'adresse de radicale pour y être associé sur le portail.
-	ynh_app_setting_set $app path $path_url/infcloud	# Remplace radicale par InfCloud dans le portail Yunohost
+	ynh_app_setting_set $app path ${path_url%/}/infcloud	# Remplace radicale par InfCloud dans le portail Yunohost
 	ynh_app_setting_set $app protected_uris "/"	# Protège l'accès à infcloud
 	domain_regex=$(echo "$domain" | sed 's@-@.@g')
 	ynh_app_setting_set $app skipped_regex "$domain_regex$path_url"	# Radicale est accessible librement (pour l'accès distant aux ressources)

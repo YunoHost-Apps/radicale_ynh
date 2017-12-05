@@ -1,29 +1,68 @@
-Radicale for YunoHost
-==================
+# Radicale for YunoHost
 
-[Yunohost project](https://yunohost.org/#/)
+[![Integration level](https://dash.yunohost.org/integration/radicale.svg)](https://ci-apps.yunohost.org/jenkins/job/radicale%20%28Community%29/lastBuild/consoleFull)  
+[![Install Radicale with YunoHost](https://install-app.yunohost.org/install-with-yunohost.png)](https://install-app.yunohost.org/?app=radicale)
 
-Radicale est un serveur CalDAV (calendrier) et CardDAV (contact) complet.
+*[Lire ce readme en français.](./README_fr.md)*
 
-http://radicale.org/
+> *This package allow you to install Radicale quickly and simply on a YunoHost server.  
+If you don't have YunoHost, please see [here](https://yunohost.org/#/install) to know how to install and enjoy it.*
 
-==================
+## Overview
 
-Radicale ne dispose d'aucune interface, sa configuration doit être faite à l'aide des fichiers de configurations dans '/etc/radicale/'  
-Il est moins friendly-user que [baikal](https://github.com/julienmalik/baikal_ynh), mais il permet de partager des calendriers en lecture seule et en écriture avec d'autres utilisateurs, qu'ils soient sur le même serveur ou pas.  
-La configuration des partages se fait à l'aide du fichier de configuration des droits '/etc/radicale/rights'.
+Radicale is a small but powerful CalDAV (calendars, todo-lists) and CardDAV (contacts) server.
 
-==================
+**Shipped version:** 1.1.6
+**Shipped version of InfCloud:** 0.13.1
 
-~~En l'état, radicale ne fonctionne pas avec [Agendav](https://github.com/julienmalik/agendav_ynh)~~. (*il semble lors de mes derniers essai que Agendav fonctionne sans problème à présent*). Ce package est donc proposé avec l'interface caldav/carddav [InfCloud](https://www.inf-it.com/open-source/clients/infcloud/)
+## Screenshots
 
-Le script installe les paquets *libjansson4* *libldap2-dev* *libmatheval1* *libpgm-5.1-0* *libpython-dev* *libsasl2-dev* *libsodium13* *libzmq3* *python-chardet-whl* *python-colorama-whl* *python-dev* *python-distlib-whl* *python-html5lib-whl* *python-pip-whl* *python-requests-whl* *python-setuptools-whl* *python-six-whl* *python-urllib3-whl* *python-virtualenv* *python3-virtualenv* *uwsgi* *uwsgi-core* *uwsgi-plugin-python* *virtualenv*.
+## Configuration
 
-**Mise à jour du package:**  
-sudo yunohost app upgrade --verbose radicale -u https://github.com/YunoHost-Apps/radicale_ynh
+Use the file `/etc/radicale/config` to change the main configuration of radicale.
+The file `/etc/radicale/logging` to change the level of logging.
+And the file `/etc/radicale/rights` to edit the way the calendars will be sharing.
 
-**Multi-utilisateur:** Oui, avec support ldap.
+## Documentation
 
-**Voir l'état du package:**  
-*[Dernier rapport hebdomadaire](https://forum.yunohost.org/t/rapport-hebdomadaire-dintegration-continue/2297)*  
-*[Dernier test d'intégration continue](https://ci-apps.yunohost.org/jenkins/job/radicale%20%28Community%29/lastBuild/consoleFull)*
+ * Official documentation: https://github.com/Kozea/Radicale/blob/website/pages/user_documentation.rst
+ * YunoHost documentation: [app_radicale.md](./app_radicale.md)
+
+## YunoHost specific features
+
+* This package bring a web interface for radicale named InfCloud.
+
+#### Multi-users support
+
+Supported, with LDAP and SSO only with radicale, not for InfCloud.
+
+#### Supported architectures
+
+* Tested on x86_64
+
+## Limitations
+
+* The version 1.1.6 is relatively old. There's a version 2 of radicale, but this new version dos not support ldap yet.
+
+## Additionnal informations
+
+## Links
+
+ * Report a bug: https://github.com/YunoHost-Apps/radicale_ynh/issues
+ * Radicale website: http://radicale.org/
+ * InfCloud website: https://www.inf-it.com/open-source/clients/infcloud/
+ * YunoHost website: https://yunohost.org/
+
+---
+
+Developers infos
+----------------
+
+Please do your pull request to the [testing branch](https://github.com/YunoHost-Apps/radicale_ynh/tree/testing).
+
+To try the testing branch, please proceed like that.
+```
+sudo yunohost app install https://github.com/YunoHost-Apps/radicale_ynh/tree/testing --verbose
+or
+sudo yunohost app upgrade radicale -u https://github.com/YunoHost-Apps/radicale_ynh/tree/testing --verbose
+```

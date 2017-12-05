@@ -104,6 +104,9 @@ chown radicale -R /var/log/$app
 ynh_restore_file "/etc/uwsgi/apps-available/radicale.ini"
 ln -s /etc/uwsgi/apps-available/radicale.ini /etc/uwsgi/apps-enabled/
 
+# Ajoute le service au monitoring de Yunohost.
+yunohost service add uwsgi --log "/var/log/uwsgi/app/radicale.log"
+
 #=================================================
 # RESTORE THE RADICALE CONFIGURATION
 #=================================================
