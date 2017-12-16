@@ -23,6 +23,8 @@ Use the file `/etc/radicale/config` to change the main configuration of radicale
 The file `/etc/radicale/logging` to change the level of logging.
 And the file `/etc/radicale/rights` to edit the way the calendars will be sharing.
 
+InfCloud has its own config file, at /var/www/radicale/infcloud/config.js
+
 ## Documentation
 
  * Official documentation: https://github.com/Kozea/Radicale/blob/website/pages/user_documentation.rst

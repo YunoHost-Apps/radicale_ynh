@@ -81,7 +81,7 @@ then
 else
 	if yunohost service status | grep -q uwsgi	# Test l'existence du service dans Yunohost
 	then
-		echo "Remove uwsgi service"
+		ynh_print_info "Remove uwsgi service" >&2
 		yunohost service remove uwsgi
 	fi
 fi

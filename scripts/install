@@ -29,8 +29,7 @@ language=$YNH_APP_ARG_LANGUAGE
 
 app=$YNH_APP_INSTANCE_NAME
 
-version=$(grep '\"version\": ' ../manifest.json | cut -d '"' -f 4)	# Retrieve the version number in the manifest file.
-
+version=$(grep '\"version\": ' ../manifest.json | cut -d '"' -f 4 | cut -d '~' -f 1)	# Retrieve the version number in the manifest file.
 
 #=================================================
 # CHECK IF THE APP CAN BE INSTALLED WITH THIS ARGS
@@ -96,6 +95,7 @@ ynh_system_user_create $app	# Créer un utilisateur système dédié à l'app
 
 # Init virtualenv
 virtualenv /opt/yunohost/$app
+version=$(ynh_app_setting_get $app version $version)
 /opt/yunohost/$app/bin/pip install radicale==$version python-ldap
 
 #=================================================
@@ -270,3 +270,24 @@ fi
 #=================================================
 
 systemctl reload nginx
+
+#=================================================
+# SEND A README FOR THE ADMIN
+#=================================================
+
+if [ $infcloud -eq 1 ]
+then
+	infcloud_config="
+InfCloud has its own config file, at $final_path/infcloud/config.js
+"
+else
+	infcloud_config=""
+fi
+
+message="Use the file /etc/radicale/config to change the main configuration of radicale.
+The file /etc/radicale/logging to change the level of logging.
+And the file /etc/radicale/rights to edit the way the calendars will be sharing.
+$infcloud_config
+If you facing an issue or want to improve this app, please open a new issue in this project: https://github.com/YunoHost-Apps/radicale_ynh"
+
+ynh_send_readme_to_admin "$message" "$admin"

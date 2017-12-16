@@ -38,7 +38,7 @@ path_url=$(ynh_app_setting_get $app path)
 # CHECK IF THE APP CAN BE RESTORED
 #=================================================
 
-yunohost app checkurl "${domain}${path_url}" -a "$app" \
+ynh_webpath_available $domain $path_url \
 	|| ynh_die "Path not available: ${domain}${path_url}"
 test ! -d $final_path \
 	|| ynh_die "There is already a directory: $final_path "
@@ -127,3 +127,24 @@ ynh_restore_file "/etc/logrotate.d/$app"
 
 systemctl restart uwsgi
 systemctl reload nginx
+
+#=================================================
+# SEND A README FOR THE ADMIN
+#=================================================
+
+if [ $infcloud -eq 1 ]
+then
+	infcloud_config="
+InfCloud has its own config file, at $final_path/infcloud/config.js
+"
+else
+	infcloud_config=""
+fi
+
+message="Use the file /etc/radicale/config to change the main configuration of radicale.
+The file /etc/radicale/logging to change the level of logging.
+And the file /etc/radicale/rights to edit the way the calendars will be sharing.
+$infcloud_config
+If you facing an issue or want to improve this app, please open a new issue in this project: https://github.com/YunoHost-Apps/radicale_ynh"
+
+ynh_send_readme_to_admin "$message" "$admin"

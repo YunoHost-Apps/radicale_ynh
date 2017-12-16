@@ -24,6 +24,12 @@ final_path=$(ynh_app_setting_get $app final_path)
 version=$(ynh_app_setting_get $app version)
 
 #=================================================
+# CHECK VERSION
+#=================================================
+
+ynh_abort_if_up_to_date
+
+#=================================================
 # FIX OLD THINGS
 #=================================================
 
@@ -37,7 +43,7 @@ fi
 
 if [ -z "$version" ]
 then
-	version=$(grep '\"version\": ' ../manifest.json | cut -d '"' -f 4)	# Retrieve the version number in the manifest file.
+	version=$(grep '\"version\": ' ../manifest.json | cut -d '"' -f 4 | cut -d '~' -f 1)	# Retrieve the version number in the manifest file.
 	ynh_app_setting_set $app version "$version"
 fi
 
@@ -115,6 +121,7 @@ fi
 # Upgrade pip packages
 ynh_secure_remove /opt/yunohost/$app
 virtualenv /opt/yunohost/$app
+version=$(ynh_app_setting_get $app version $version)
 bash -c "source /opt/yunohost/radicale/bin/activate && pip install radicale==$version python-ldap"
 
 #=================================================
