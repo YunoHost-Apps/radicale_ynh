@@ -33,6 +33,7 @@ final_path=$(ynh_app_setting_get $app final_path)
 domain=$(ynh_app_setting_get $app domain)
 infcloud=$(ynh_app_setting_get $app infcloud)
 path_url=$(ynh_app_setting_get $app path)
+admin=$(ynh_app_setting_get $app admin)
 
 #=================================================
 # CHECK IF THE APP CAN BE RESTORED
