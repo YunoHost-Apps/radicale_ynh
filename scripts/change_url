@@ -126,7 +126,7 @@ fi
 # RESTART UWSGI
 #=================================================
 
-systemctl restart uwsgi
+ynh_system_reload uwsgi restart
 
 #=================================================
 # GENERIC FINALISATION
@@ -134,4 +134,4 @@ systemctl restart uwsgi
 # RELOAD NGINX
 #=================================================
 
-systemctl reload nginx
+ynh_system_reload nginx

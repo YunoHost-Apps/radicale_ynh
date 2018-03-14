@@ -222,7 +222,7 @@ done <<< "$(yunohost user list | grep username | cut -d ":" -f 2 | cut -c 2-)"	#
 # ENABLE UWSGI SERVICE IN ADMIN PANEL
 #=================================================
 
-systemctl restart uwsgi
+ynh_system_reload uwsgi restart
 # Ajoute le service au monitoring de Yunohost.
 yunohost service add uwsgi --log "/var/log/uwsgi/app/radicale.log"
 
@@ -269,7 +269,7 @@ fi
 # RELOAD NGINX
 #=================================================
 
-systemctl reload nginx
+ynh_system_reload nginx
 
 #=================================================
 # SEND A README FOR THE ADMIN
