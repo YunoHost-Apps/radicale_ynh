@@ -24,7 +24,7 @@ domain=$(ynh_app_setting_get $app domain)
 #=================================================
 
 # Suppression de la configuration uwsgi
-systemctl stop uwsgi
+ynh_system_reload uwsgi stop
 if [ -h "/etc/uwsgi/apps-enabled/radicale.ini" ]; then
 	echo "Delete uwsgi config"
 	ynh_secure_remove "/etc/uwsgi/apps-enabled/radicale.ini"
@@ -77,7 +77,7 @@ ynh_secure_remove "/etc/$app"	# Delete radicale config
 if [ -e /etc/init.d/uwsgi ]
 then
 	# Redémarre le service uwsgi si il n'est pas désinstallé.
-	systemctl start uwsgi
+	ynh_system_reload uwsgi start
 else
 	if yunohost service status | grep -q uwsgi	# Test l'existence du service dans Yunohost
 	then

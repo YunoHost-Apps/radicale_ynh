@@ -126,8 +126,8 @@ ynh_restore_file "/etc/logrotate.d/$app"
 # RELOAD NGINX AND UWSGI
 #=================================================
 
-systemctl restart uwsgi
-systemctl reload nginx
+ynh_system_reload uwsgi restart
+ynh_system_reload nginx
 
 #=================================================
 # SEND A README FOR THE ADMIN
