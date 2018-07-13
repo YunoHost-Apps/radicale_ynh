@@ -69,12 +69,6 @@ ynh_install_app_dependencies $app_depencencies
 #=================================================
 
 ynh_add_nginx_config
-if [ "$path_url" = "/" ]
-then
-	ynh_replace_string "__PATH_NO_ROOT__" "" /etc/nginx/conf.d/$domain.d/$app.conf
-else
-	ynh_replace_string "__PATH_NO_ROOT__" "$path_url" /etc/nginx/conf.d/$domain.d/$app.conf
-fi
 if [ $infcloud -eq 1 ]
 then	# Ajoute InfCloud dans la config Nginx
 	ynh_replace_string "#INFCLOUD#" "" /etc/nginx/conf.d/$domain.d/$app.conf
@@ -222,7 +216,7 @@ done <<< "$(yunohost user list | grep username | cut -d ":" -f 2 | cut -c 2-)"	#
 # ENABLE UWSGI SERVICE IN ADMIN PANEL
 #=================================================
 
-ynh_system_reload uwsgi restart
+ynh_system_reload --service_name=uwsgi --action=restart
 # Ajoute le service au monitoring de Yunohost.
 yunohost service add uwsgi --log "/var/log/uwsgi/app/radicale.log"
 
@@ -269,7 +263,7 @@ fi
 # RELOAD NGINX
 #=================================================
 
-ynh_system_reload nginx
+ynh_system_reload --service_name=nginx
 
 #=================================================
 # SEND A README FOR THE ADMIN
@@ -290,4 +284,4 @@ And the file /etc/radicale/rights to edit the way the calendars will be sharing.
 $infcloud_config
 If you facing an issue or want to improve this app, please open a new issue in this project: https://github.com/YunoHost-Apps/radicale_ynh"
 
-ynh_send_readme_to_admin "$message" "$admin"
+ynh_send_readme_to_admin --app_message="$message" --recipients="$admin"

@@ -6,12 +6,7 @@
 # IMPORT GENERIC HELPERS
 #=================================================
 
-if [ ! -e _common.sh ]; then
-	# Get the _common.sh file if it's not in the current directory
-	cp ../settings/scripts/_common.sh ./_common.sh
-	chmod a+rx _common.sh
-fi
-source _common.sh
+source ../settings/scripts/_common.sh
 source /usr/share/yunohost/helpers
 # Load common variables for all scripts.
 source ../settings/scripts/_variables
@@ -45,6 +40,12 @@ test ! -d $final_path \
 	|| ynh_die "There is already a directory: $final_path "
 test ! -d "/opt/yunohost/$app" \
 	|| ynh_die "There is already a directory: /opt/yunohost/$app "
+
+#=================================================
+# ACTIVATE MAINTENANCE MODE
+#=================================================
+
+ynh_maintenance_mode_ON
 
 #=================================================
 # STANDARD RESTORE STEPS
@@ -82,7 +83,7 @@ if [ $infcloud -eq 1 ]
 then
 	ynh_restore_file "/etc/php5/fpm/pool.d/$app.conf"
 	ynh_restore_file "/etc/php5/fpm/conf.d/20-$app.ini"
-	systemctl reload php5-fpm
+	ynh_system_reload --service_name=php5-fpm
 fi
 
 #=================================================
@@ -126,8 +127,14 @@ ynh_restore_file "/etc/logrotate.d/$app"
 # RELOAD NGINX AND UWSGI
 #=================================================
 
-ynh_system_reload uwsgi restart
-ynh_system_reload nginx
+ynh_system_reload --service_name=uwsgi --action=restart
+ynh_system_reload --service_name=nginx
+
+#=================================================
+# DEACTIVE MAINTENANCE MODE
+#=================================================
+
+ynh_maintenance_mode_OFF
 
 #=================================================
 # SEND A README FOR THE ADMIN
@@ -148,4 +155,4 @@ And the file /etc/radicale/rights to edit the way the calendars will be sharing.
 $infcloud_config
 If you facing an issue or want to improve this app, please open a new issue in this project: https://github.com/YunoHost-Apps/radicale_ynh"
 
-ynh_send_readme_to_admin "$message" "$admin"
+ynh_send_readme_to_admin --app_message="$message" --recipients="$admin"

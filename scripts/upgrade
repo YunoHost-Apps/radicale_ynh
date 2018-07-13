@@ -27,10 +27,10 @@ version=$(ynh_app_setting_get $app version)
 # CHECK VERSION
 #=================================================
 
-ynh_abort_if_up_to_date
+upgrade_type=$(ynh_check_app_version_changed)
 
 #=================================================
-# FIX OLD THINGS
+# ENSURE DOWNWARD COMPATIBILITY
 #=================================================
 
 ynh_app_setting_delete $app unprotected_regex
@@ -72,11 +72,16 @@ ynh_abort_if_errors
 # CHECK THE PATH
 #=================================================
 
-
 if [ $infcloud -eq 1 ]; then
 	path_url=$(echo $path_url | sed "s@/infcloud@@")	# Retire /infcloud pour traiter le path seul.
 fi
 path_url=$(ynh_normalize_url_path $path_url)	# Vérifie et corrige la syntaxe du path.
+
+#=================================================
+# ACTIVATE MAINTENANCE MODE
+#=================================================
+
+ynh_maintenance_mode_ON
 
 #=================================================
 # STANDARD UPGRADE STEPS
@@ -85,12 +90,6 @@ path_url=$(ynh_normalize_url_path $path_url)	# Vérifie et corrige la syntaxe du
 #=================================================
 
 ynh_add_nginx_config
-if [ "$path_url" = "/" ]
-then
-	ynh_replace_string "__PATH_NO_ROOT__" "" /etc/nginx/conf.d/$domain.d/$app.conf
-else
-	ynh_replace_string "__PATH_NO_ROOT__" "$path_url" /etc/nginx/conf.d/$domain.d/$app.conf
-fi
 if [ $infcloud -eq 1 ]
 then	# Ajoute InfCloud dans la config Nginx
 	ynh_replace_string "#INFCLOUD#" "" /etc/nginx/conf.d/$domain.d/$app.conf
@@ -118,11 +117,14 @@ fi
 # UPGRADE RADICALE IN ITS VIRTUALENV
 #=================================================
 
-# Upgrade pip packages
-ynh_secure_remove /opt/yunohost/$app
-virtualenv /opt/yunohost/$app
-version=$(ynh_app_setting_get $app version $version)
-bash -c "source /opt/yunohost/radicale/bin/activate && pip install radicale==$version python-ldap"
+if [ "$upgrade_type" == "UPGRADE_APP" ]
+then
+	# Upgrade pip packages
+	ynh_secure_remove /opt/yunohost/$app
+	virtualenv /opt/yunohost/$app
+	version=$(ynh_app_setting_get $app version $version)
+	bash -c "source /opt/yunohost/radicale/bin/activate && pip install radicale==$version python-ldap"
+fi
 
 #=================================================
 # COPY FILES INTO $FINAL_PATH
@@ -135,12 +137,15 @@ cp ../conf/radicale.wsgi $final_path
 cp -a ../sources/extra_files_radicale/. "$final_path"
 # Le fichier regex.py est patché pour corrigé le commit destructeur e807c3d35bea9cfcfcacac83b1b17d748ea15a39 du 3/12/2015 qui arrête la lecture du fichier rights à la première occurence validée.
 mv "$final_path/regex.py" /opt/yunohost/$app/lib/python*/site-packages/radicale/rights/regex.py
-if [ "$infcloud" = "1" ]
-then	#Instal InfCloud
-	final_path_backup=$final_path	# Sauvegarde le contenu de $final_path
-	final_path=$final_path/infcloud	# Change final_path pour l'installation de infcloud
-	ynh_setup_source "$final_path"	# Télécharge la source, décompresse et copie dans $final_path
-	final_path=$final_path_backup	# Restaure le contenu de $final_path
+if [ "$upgrade_type" == "UPGRADE_APP" ]
+then
+	if [ "$infcloud" = "1" ]
+	then	#Instal InfCloud
+		final_path_backup=$final_path	# Sauvegarde le contenu de $final_path
+		final_path=$final_path/infcloud	# Change final_path pour l'installation de infcloud
+		ynh_setup_source "$final_path"	# Télécharge la source, décompresse et copie dans $final_path
+		final_path=$final_path_backup	# Restaure le contenu de $final_path
+	fi
 fi
 
 #=================================================
@@ -230,7 +235,7 @@ cp ../conf/radicale.ini /etc/uwsgi/apps-available/
 # RESTART UWSGI
 #=================================================
 
-ynh_system_reload uwsgi restart
+ynh_system_reload --service_name=uwsgi --action=restart
 
 #=================================================
 # PREPARE THE HOOKS
@@ -239,6 +244,12 @@ ynh_system_reload uwsgi restart
 # Modification des hook pour la création des collections par défaut des nouveaux utilisateurs. Et leur suppression
 ynh_replace_string "__FINALPATH__" "$final_path" ../hooks/post_user_create
 ynh_replace_string "__FINALPATH__" "$final_path" ../hooks/post_user_delete
+
+#=================================================
+# SETUP LOGROTATE
+#=================================================
+
+ynh_use_logrotate --non-append
 
 #=================================================
 # GENERIC FINALISATION
@@ -260,4 +271,4 @@ fi
 # RELOAD NGINX
 #=================================================
 
-ynh_system_reload nginx
+ynh_system_reload --service_name=nginx
