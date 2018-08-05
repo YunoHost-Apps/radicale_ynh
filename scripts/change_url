@@ -146,3 +146,11 @@ ynh_system_reload --service_name=uwsgi --action=restart
 #=================================================
 
 ynh_system_reload --service_name=nginx
+
+#=================================================
+# DEACTIVE MAINTENANCE MODE
+#=================================================
+
+path_url=$old_path
+domain=$old_domain
+ynh_maintenance_mode_OFF
