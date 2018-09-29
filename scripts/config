@@ -1,0 +1,265 @@
+#!/bin/bash
+
+#=================================================
+# GENERIC STARTING
+#=================================================
+# IMPORT GENERIC HELPERS
+#=================================================
+
+source _common.sh
+source /usr/share/yunohost/helpers
+# Load common variables for all scripts.
+source _variables
+
+#=================================================
+# RETRIEVE ARGUMENTS
+#=================================================
+
+app=${YNH_APP_INSTANCE_NAME:-$YNH_APP_ID}
+
+final_path=$(ynh_app_setting_get $app final_path)
+
+#=================================================
+# SPECIFIC CODE
+#=================================================
+# DECLARE GENERIC FUNCTION
+#=================================================
+
+config_file="$final_path/infcloud/config.js"
+
+get_config_value() {
+	option_name="$1"
+	# Get the value of this option in the config file
+	grep "^var $option_name=" "$config_file" | cut -d'=' -f2 | cut -d';' -f1 | cut -d\' -f2
+}
+
+#=================================================
+# LOAD VALUES
+#=================================================
+
+# Load the real value from the app config or elsewhere.
+# Then get the value from the form.
+# If the form has a value for a variable, take the value from the form,
+# Otherwise, keep the value from the app config.
+
+# language
+old_language="$(ynh_app_setting_get $app language)"
+language="${YNH_CONFIG_MAIN_INFCLOUD_CONFIGURATION_LANGUAGE:-$old_language}"
+
+# firstdayofweek
+old_firstdayofweek="$(get_config_value globalDatepickerFirstDayOfWeek)"
+firstdayofweek="${YNH_CONFIG_MAIN_INFCLOUD_CONFIGURATION_FIRSTDAYOFWEEK:-$old_firstdayofweek}"
+# activeview
+old_activeview="$(get_config_value globalActiveView)"
+activeview="${YNH_CONFIG_MAIN_INFCLOUD_CONFIGURATION_ACTIVEVIEW:-$old_activeview}"
+# openformmode
+old_openformmode="$(get_config_value globalOpenFormMode)"
+openformmode="${YNH_CONFIG_MAIN_INFCLOUD_CONFIGURATION_OPENFORMMODE:-$old_openformmode}"
+# startofbusiness
+old_startofbusiness="$(get_config_value globalCalendarStartOfBusiness)"
+startofbusiness="${YNH_CONFIG_MAIN_INFCLOUD_CONFIGURATION_STARTOFBUSINESS:-$old_startofbusiness}"
+# endofbusiness
+old_endofbusiness="$(get_config_value globalCalendarEndOfBusiness)"
+endofbusiness="${YNH_CONFIG_MAIN_INFCLOUD_CONFIGURATION_ENDOFBUSINESS:-$old_endofbusiness}"
+# defaulteventduration
+old_defaulteventduration="$(get_config_value globalDefaultEventDuration)"
+defaulteventduration="${YNH_CONFIG_MAIN_INFCLOUD_CONFIGURATION_DEFAULTEVENTDURATION:-$old_defaulteventduration}"
+
+# Overwrite logging file
+old_overwrite_logging="$(ynh_app_setting_get $app overwrite_logging)"
+old_overwrite_logging=$(bool_to_true_false $old_overwrite_logging)
+overwrite_logging="${YNH_CONFIG_MAIN_OVERWRITE_FILES_OVERWRITE_LOGGING:-$old_overwrite_logging}"
+
+# Overwrite config file
+old_overwrite_config="$(ynh_app_setting_get $app overwrite_config)"
+old_overwrite_config=$(bool_to_true_false $old_overwrite_config)
+overwrite_config="${YNH_CONFIG_MAIN_OVERWRITE_FILES_OVERWRITE_CONFIG:-$old_overwrite_config}"
+
+# Overwrite config.js file from InfCloud
+old_overwrite_infcloud="$(ynh_app_setting_get $app overwrite_infcloud)"
+old_overwrite_infcloud=$(bool_to_true_false $old_overwrite_infcloud)
+overwrite_infcloud="${YNH_CONFIG_MAIN_OVERWRITE_FILES_OVERWRITE_INFCLOUD:-$old_overwrite_infcloud}"
+
+# Overwrite nginx configuration
+old_overwrite_nginx="$(ynh_app_setting_get $app overwrite_nginx)"
+old_overwrite_nginx=$(bool_to_true_false $old_overwrite_nginx)
+overwrite_nginx="${YNH_CONFIG_MAIN_OVERWRITE_FILES_OVERWRITE_NGINX:-$old_overwrite_nginx}"
+
+# Overwrite php-fpm configuration
+old_overwrite_phpfpm="$(ynh_app_setting_get $app overwrite_phpfpm)"
+old_overwrite_phpfpm=$(bool_to_true_false $old_overwrite_phpfpm)
+overwrite_phpfpm="${YNH_CONFIG_MAIN_OVERWRITE_FILES_OVERWRITE_PHPFPM:-$old_overwrite_phpfpm}"
+
+#=================================================
+# SHOW_CONFIG FUNCTION FOR 'SHOW' COMMAND
+#=================================================
+
+show_config() {
+	# here you are supposed to read some config file/database/other then print the values
+	# echo "YNH_CONFIG_${PANEL_ID}_${SECTION_ID}_${OPTION_ID}=value"
+
+	case "$language" in
+		"cs_CZ") language="Czech"
+		;;
+		"da_DK") language="Danish"
+		;;
+		"de_DE") language="German"
+		;;
+		"en_US") language="English/US"
+		;;
+		"es_ES") language="Spanish"
+		;;
+		"fr_FR") language="French"
+		;;
+		"it_IT") language="Italian"
+		;;
+		"ja_JP") language="Japan"
+		;;
+		"hu_HU") language="Hungarian"
+		;;
+		"nl_NL") language="Dutch"
+		;;
+		"sk_SK") language="Slovak"
+		;;
+		"tr_TR") language="Turkish"
+		;;
+		"ru_RU") language="Russian"
+		;;
+		"uk_UA") language="Ukrainian"
+		;;
+		"zh_CN") language="Chinese"
+		;;
+	esac
+	echo "YNH_CONFIG_MAIN_INFCLOUD_CONFIGURATION_LANGUAGE=$language"
+	if [ $firstdayofweek -eq 0 ]; then
+		firstdayofweek=Sunday
+	else
+		firstdayofweek=Monday
+	fi
+	echo "YNH_CONFIG_MAIN_INFCLOUD_CONFIGURATION_FIRSTDAYOFWEEK=$firstdayofweek"
+	echo "YNH_CONFIG_MAIN_INFCLOUD_CONFIGURATION_ACTIVEVIEW=$activeview"
+	echo "YNH_CONFIG_MAIN_INFCLOUD_CONFIGURATION_OPENFORMMODE=$openformmode"
+	echo "YNH_CONFIG_MAIN_INFCLOUD_CONFIGURATION_STARTOFBUSINESS=$startofbusiness"
+	echo "YNH_CONFIG_MAIN_INFCLOUD_CONFIGURATION_ENDOFBUSINESS=$endofbusiness"
+	echo "YNH_CONFIG_MAIN_INFCLOUD_CONFIGURATION_DEFAULTEVENTDURATION=$defaulteventduration"
+
+	echo "YNH_CONFIG_MAIN_OVERWRITE_FILES_OVERWRITE_LOGGING=$overwrite_logging"
+	echo "YNH_CONFIG_MAIN_OVERWRITE_FILES_OVERWRITE_CONFIG=$overwrite_config"
+	echo "YNH_CONFIG_MAIN_OVERWRITE_FILES_OVERWRITE_INFCLOUD=$overwrite_infcloud"
+	echo "YNH_CONFIG_MAIN_OVERWRITE_FILES_OVERWRITE_NGINX=$overwrite_nginx"
+	echo "YNH_CONFIG_MAIN_OVERWRITE_FILES_OVERWRITE_PHPFPM=$overwrite_phpfpm"
+}
+
+#=================================================
+# MODIFY THE CONFIGURATION
+#=================================================
+
+apply_config() {
+	# Change configuration if needed
+	# language
+	case "$language" in
+		"Czech") language="cs_CZ"
+		;;
+		"Danish") language="da_DK"
+		;;
+		"German") language="de_DE"
+		;;
+		"English/US") language="en_US"
+		;;
+		"Spanish") language="es_ES"
+		;;
+		"French") language="fr_FR"
+		;;
+		"Italian") language="it_IT"
+		;;
+		"Japan") language="ja_JP"
+		;;
+		"Hungarian") language="hu_HU"
+		;;
+		"Dutch") language="nl_NL"
+		;;
+		"Slovak") language="sk_SK"
+		;;
+		"Turkish") language="tr_TR"
+		;;
+		"Russian") language="ru_RU"
+		;;
+		"Ukrainian") language="uk_UA"
+		;;
+		"Chinese") language="zh_CN"
+		;;
+	esac
+	if [ "$language" != "$old_language" ]
+	then
+		ynh_replace_string "\(^var globalInterfaceLanguage=\).*" "\1\'$language\';" "$config_file"
+		ynh_app_setting_set $app language "$language"
+	fi
+	# firstdayofweek
+	if [ "$firstdayofweek" = "Sunday" ]; then
+		firstdayofweek=0
+	else
+		firstdayofweek=1
+	fi
+	if [ "$firstdayofweek" != "$old_firstdayofweek" ]
+	then
+		ynh_replace_string "\(^var globalDatepickerFirstDayOfWeek=\).*" "\1$firstdayofweek;" "$config_file"
+		ynh_app_setting_set $app firstdayofweek "$firstdayofweek"
+	fi
+	# activeview
+	if [ "$activeview" != "$old_activeview" ]
+	then
+		ynh_replace_string "\(^var globalActiveView=\).*" "\1\'$activeview\';" "$config_file"
+		ynh_app_setting_set $app activeview "$activeview"
+	fi
+	# openformmode
+	if [ "$openformmode" != "$old_openformmode" ]
+	then
+		ynh_replace_string "\(^var globalOpenFormMode=\).*" "\1\'$openformmode\';" "$config_file"
+		ynh_app_setting_set $app openformmode "$openformmode"
+	fi
+	# startofbusiness
+	if [ "$startofbusiness" != "$old_startofbusiness" ]
+	then
+		ynh_replace_string "\(^var globalCalendarStartOfBusiness=\).*" "\1$startofbusiness;" "$config_file"
+		ynh_app_setting_set $app startofbusiness "$startofbusiness"
+	fi
+	# endofbusiness
+	if [ "$endofbusiness" != "$old_endofbusiness" ]
+	then
+		ynh_replace_string "\(^var globalCalendarEndOfBusiness=\).*" "\1$endofbusiness;" "$config_file"
+		ynh_app_setting_set $app endofbusiness "$endofbusiness"
+	fi
+	# defaulteventduration
+	if [ "$defaulteventduration" != "$old_defaulteventduration" ]
+	then
+		ynh_replace_string "\(^var globalDefaultEventDuration=\).*" "\1$defaulteventduration;" "$config_file"
+		ynh_app_setting_set $app defaulteventduration "$defaulteventduration"
+	fi
+
+	# Set overwrite_logging
+	overwrite_logging=$(bool_to_01 $overwrite_logging)
+	ynh_app_setting_set $app overwrite_logging "$overwrite_logging"
+	# Set overwrite_config
+	overwrite_config=$(bool_to_01 $overwrite_config)
+	ynh_app_setting_set $app overwrite_config "$overwrite_config"
+	# Set overwrite_infcloud
+	overwrite_infcloud=$(bool_to_01 $overwrite_infcloud)
+	ynh_app_setting_set $app overwrite_infcloud "$overwrite_infcloud"
+	# Set overwrite_nginx
+	overwrite_nginx=$(bool_to_01 $overwrite_nginx)
+	ynh_app_setting_set $app overwrite_nginx "$overwrite_nginx"
+	# Set overwrite_phpfpm
+	overwrite_phpfpm=$(bool_to_01 $overwrite_phpfpm)
+	ynh_app_setting_set $app overwrite_phpfpm "$overwrite_phpfpm"
+}
+
+#=================================================
+# GENERIC FINALIZATION
+#=================================================
+# SELECT THE ACTION FOLLOWING THE GIVEN ARGUMENT
+#=================================================
+
+case $1 in
+  show) show_config;;
+  apply) apply_config;;
+esac

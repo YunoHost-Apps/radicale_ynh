@@ -22,6 +22,19 @@ infcloud=$(ynh_app_setting_get $app infcloud)
 language=$(ynh_app_setting_get $app language)
 final_path=$(ynh_app_setting_get $app final_path)
 version=$(ynh_app_setting_get $app version)
+overwrite_logging=$(ynh_app_setting_get $app overwrite_logging)
+overwrite_config=$(ynh_app_setting_get $app overwrite_config)
+overwrite_infcloud=$(ynh_app_setting_get $app overwrite_infcloud)
+overwrite_nginx=$(ynh_app_setting_get $app overwrite_nginx)
+overwrite_phpfpm=$(ynh_app_setting_get $app overwrite_phpfpm)
+
+# Optional parameters from config-panel feature
+firstdayofweek=$(ynh_app_setting_get $app firstdayofweek)
+activeview=$(ynh_app_setting_get $app activeview)
+openformmode=$(ynh_app_setting_get $app openformmode)
+startofbusiness=$(ynh_app_setting_get $app startofbusiness)
+endofbusiness=$(ynh_app_setting_get $app endofbusiness)
+defaulteventduration=$(ynh_app_setting_get $app defaulteventduration)
 
 #=================================================
 # CHECK VERSION
@@ -53,6 +66,36 @@ if [ "$infcloud" = "Yes" ]; then
 elif [ "$infcloud" = "No" ]; then
 	ynh_app_setting_set $app infcloud 0
 	infcloud=0
+fi
+
+# If overwrite_logging doesn't exist, create it
+if [ -z "$overwrite_logging" ]; then
+	overwrite_logging=1
+	ynh_app_setting_set $app overwrite_logging $overwrite_logging
+fi
+
+# If overwrite_config doesn't exist, create it
+if [ -z "$overwrite_config" ]; then
+	overwrite_config=1
+	ynh_app_setting_set $app overwrite_config $overwrite_config
+fi
+
+# If overwrite_infcloud doesn't exist, create it
+if [ -z "$overwrite_infcloud" ]; then
+	overwrite_infcloud=1
+	ynh_app_setting_set $app overwrite_infcloud $overwrite_infcloud
+fi
+
+# If overwrite_nginx doesn't exist, create it
+if [ -z "$overwrite_nginx" ]; then
+	overwrite_nginx=1
+	ynh_app_setting_set $app overwrite_nginx $overwrite_nginx
+fi
+
+# If overwrite_phpfpm doesn't exist, create it
+if [ -z "$overwrite_phpfpm" ]; then
+	overwrite_phpfpm=1
+	ynh_app_setting_set $app overwrite_phpfpm $overwrite_phpfpm
 fi
 
 #=================================================
@@ -89,12 +132,16 @@ ynh_maintenance_mode_ON
 # NGINX CONFIGURATION
 #=================================================
 
-ynh_add_nginx_config
-if [ $infcloud -eq 1 ]
-then	# Ajoute InfCloud dans la config Nginx
-	ynh_replace_string "#INFCLOUD#" "" /etc/nginx/conf.d/$domain.d/$app.conf
+# Overwrite the nginx configuration only if it's allowed
+if [ $overwrite_nginx -eq 1 ]
+then
+	ynh_add_nginx_config
+	if [ $infcloud -eq 1 ]
+	then	# Ajoute InfCloud dans la config Nginx
+		ynh_replace_string "#INFCLOUD#" "" /etc/nginx/conf.d/$domain.d/$app.conf
+	fi
+	ynh_store_file_checksum "$finalnginxconf"
 fi
-ynh_store_file_checksum "$finalnginxconf"
 
 #=================================================
 # CREATE DEDICATED USER
@@ -108,7 +155,11 @@ then
 	# PHP-FPM CONFIGURATION
 	#=================================================
 
-	ynh_add_fpm_config	# Créer le fichier de configuration du pool php-fpm et le configure.
+	# Overwrite the php-fpm configuration only if it's allowed
+	if [ $overwrite_phpfpm -eq 1 ]
+	then
+		ynh_add_fpm_config	# Créer le fichier de configuration du pool php-fpm et le configure.
+	fi
 fi
 
 #=================================================
@@ -143,7 +194,14 @@ then
 	then	#Instal InfCloud
 		final_path_backup=$final_path	# Sauvegarde le contenu de $final_path
 		final_path=$final_path/infcloud	# Change final_path pour l'installation de infcloud
+		# If overwrite_infcloud is 0, copy the config file, then restore it.
+		if [ $overwrite_infcloud -eq 0 ]; then
+			cp -a $final_path/config.js ./config.js
+		fi
 		ynh_setup_source "$final_path"	# Télécharge la source, décompresse et copie dans $final_path
+		if [ $overwrite_infcloud -eq 0 ]; then
+			mv ./config.js $final_path/config.js
+		fi
 		final_path=$final_path_backup	# Restaure le contenu de $final_path
 	fi
 fi
@@ -152,58 +210,92 @@ fi
 # CONFIGURE RADICALE
 #=================================================
 
-ynh_backup_if_checksum_is_different "/etc/$app/config"	# Créé un backup du fichier de config si il a été modifié.
-cp ../conf/config /etc/$app/
-ynh_backup_if_checksum_is_different "/etc/$app/logging"	# Créé un backup du fichier de config si il a été modifié.
-cp ../conf/logging /etc/$app/
-ynh_store_file_checksum "/etc/$app/logging"	# Réenregistre la somme de contrôle du fichier de config
-ynh_replace_string "__PATH__" "${path_url%/}" /etc/$app/config
-ynh_replace_string "__FINALPATH__" "$final_path" /etc/$app/config
-ynh_store_file_checksum "/etc/$app/config"	# Réenregistre la somme de contrôle du fichier de config
-if [ $infcloud -eq 1 ]
-then	#Configuration InfCloud
-	# Détermine la langue
-	case "$language" in
-		"Czech") language="cs_CZ"
-		;;
-		"Danish") language="da_DK"
-		;;
-		"German") language="de_DE"
-		;;
-		"English/US") language="en_US"
-		;;
-		"Spanish") language="es_ES"
-		;;
-		"French") language="fr_FR"
-		;;
-		"Italian") language="it_IT"
-		;;
-		"Japan") language="ja_JP"
-		;;
-		"Hungarian") language="hu_HU"
-		;;
-		"Dutch") language="nl_NL"
-		;;
-		"Slovak") language="sk_SK"
-		;;
-		"Turkish") language="tr_TR"
-		;;
-		"Russian") language="ru_RU"
-		;;
-		"Ukrainian") language="uk_UA"
-		;;
-		"Chinese") language="zh_CN"
-		;;
-	esac
-	ynh_app_setting_set $app language $language
-	ynh_backup_if_checksum_is_different "$final_path/infcloud/config.js"	# Créé un backup du fichier de config si il a été modifié.
-	cp ../conf/config.js "$final_path/infcloud/"
-	ynh_replace_string "__DOMAIN__" "$domain" "$final_path/infcloud/config.js"
-	ynh_replace_string "__PATH__" "${path_url%/}" "$final_path/infcloud/config.js"
-	ynh_replace_string "__LANG__" "$language" "$final_path/infcloud/config.js"
-	ynh_replace_string "__ADMIN__" "$admin" "$final_path/infcloud/config.js"
-	ynh_replace_string "__TIMEZONE__" "$(cat /etc/timezone)" "$final_path/infcloud/config.js"
-	ynh_store_file_checksum "$final_path/infcloud/config.js"	# Réenregistre la somme de contrôle du fichier de config
+# Overwrite the logging config file only if it's allowed
+if [ $overwrite_logging -eq 1 ]
+then
+	ynh_backup_if_checksum_is_different "/etc/$app/logging"	# Créé un backup du fichier de config si il a été modifié.
+	cp ../conf/logging /etc/$app/
+	ynh_store_file_checksum "/etc/$app/logging"	# Réenregistre la somme de contrôle du fichier de config
+fi
+
+# Overwrite the config file only if it's allowed
+if [ $overwrite_config -eq 1 ]
+then
+	ynh_backup_if_checksum_is_different "/etc/$app/config"	# Créé un backup du fichier de config si il a été modifié.
+	cp ../conf/config /etc/$app/
+	ynh_replace_string "__PATH__" "${path_url%/}" /etc/$app/config
+	ynh_replace_string "__FINALPATH__" "$final_path" /etc/$app/config
+	ynh_store_file_checksum "/etc/$app/config"	# Réenregistre la somme de contrôle du fichier de config
+fi
+
+# Overwrite the InfCloud config file only if it's allowed
+if [ $overwrite_infcloud -eq 1 ]
+then
+	if [ $infcloud -eq 1 ]
+	then	#Configuration InfCloud
+		# Détermine la langue
+		case "$language" in
+			"Czech") language="cs_CZ"
+			;;
+			"Danish") language="da_DK"
+			;;
+			"German") language="de_DE"
+			;;
+			"English/US") language="en_US"
+			;;
+			"Spanish") language="es_ES"
+			;;
+			"French") language="fr_FR"
+			;;
+			"Italian") language="it_IT"
+			;;
+			"Japan") language="ja_JP"
+			;;
+			"Hungarian") language="hu_HU"
+			;;
+			"Dutch") language="nl_NL"
+			;;
+			"Slovak") language="sk_SK"
+			;;
+			"Turkish") language="tr_TR"
+			;;
+			"Russian") language="ru_RU"
+			;;
+			"Ukrainian") language="uk_UA"
+			;;
+			"Chinese") language="zh_CN"
+			;;
+		esac
+		ynh_app_setting_set $app language $language
+		ynh_backup_if_checksum_is_different "$final_path/infcloud/config.js"	# Créé un backup du fichier de config si il a été modifié.
+		cp ../conf/config.js "$final_path/infcloud/"
+		ynh_replace_string "__DOMAIN__" "$domain" "$final_path/infcloud/config.js"
+		ynh_replace_string "__PATH__" "${path_url%/}" "$final_path/infcloud/config.js"
+		ynh_replace_string "__LANG__" "$language" "$final_path/infcloud/config.js"
+		ynh_replace_string "__ADMIN__" "$admin" "$final_path/infcloud/config.js"
+		ynh_replace_string "__TIMEZONE__" "$(cat /etc/timezone)" "$final_path/infcloud/config.js"
+
+		# Optional parameters from config-panel feature
+		if [ -n "$firstdayofweek" ]; then
+			ynh_replace_string "\(^var globalDatepickerFirstDayOfWeek=\).*" "\1$firstdayofweek;" "$final_path/infcloud/config.js"
+		fi
+		if [ -n "$activeview" ]; then
+			ynh_replace_string "\(^var globalActiveView=\).*" "\1\'$activeview\';" "$final_path/infcloud/config.js"
+		fi
+		if [ -n "$openformmode" ]; then
+			ynh_replace_string "\(^var globalOpenFormMode=\).*" "\1\'$openformmode\';" "$final_path/infcloud/config.js"
+		fi
+		if [ -n "$startofbusiness" ]; then
+			ynh_replace_string "\(^var globalCalendarStartOfBusiness=\).*" "\1$startofbusiness;" "$final_path/infcloud/config.js"
+		fi
+		if [ -n "$endofbusiness" ]; then
+			ynh_replace_string "\(^var globalCalendarEndOfBusiness=\).*" "\1$endofbusiness;" "$final_path/infcloud/config.js"
+		fi
+		if [ -n "$defaulteventduration" ]; then
+			ynh_replace_string "\(^var globalDefaultEventDuration=\).*" "\1$defaulteventduration;" "$final_path/infcloud/config.js"
+		fi
+		ynh_store_file_checksum "$final_path/infcloud/config.js"	# Réenregistre la somme de contrôle du fichier de config
+	fi
 fi
 
 #=================================================
