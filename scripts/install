@@ -55,6 +55,11 @@ ynh_app_setting_set $app path $path_url
 ynh_app_setting_set $app admin $admin
 ynh_app_setting_set $app infcloud $infcloud
 ynh_app_setting_set $app version $version
+ynh_app_setting_set $app overwrite_logging "1"
+ynh_app_setting_set $app overwrite_config "1"
+ynh_app_setting_set $app overwrite_infcloud "1"
+ynh_app_setting_set $app overwrite_nginx "1"
+ynh_app_setting_set $app overwrite_phpfpm "1"
 
 #=================================================
 # STANDARD MODIFICATIONS

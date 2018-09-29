@@ -1,0 +1,55 @@
+[{
+		"id": "add_remove_infcloud",
+		"name": "Install/remove InfCloud",
+		"command": "/bin/bash scripts/actions/add_remove_infcloud",
+		"user": "root",
+		"accepted_return_codes": [0],
+		"description": {
+			"en": "Install or remove InfCloud.",
+			"fr": "Installe ou supprime InfCloud."
+		}
+},
+{
+		"id": "reset_default_infcloud",
+		"name": "Reset the InfCloud config file and restore a default one.",
+		"command": "/bin/bash scripts/actions/reset_default_config \"infcloud\"",
+		"user": "root",
+		"accepted_return_codes": [0],
+		"description": {
+			"en": "Reset the InfCloud config file config.js.",
+			"fr": "Réinitialise le fichier de configuration InfCloud config.js."
+		}
+},
+{
+		"id": "reset_default_config",
+		"name": "Reset the config file and restore a default one.",
+		"command": "/bin/bash scripts/actions/reset_default_config \"config\"",
+		"user": "root",
+		"accepted_return_codes": [0],
+		"description": {
+			"en": "Reset the config file config.",
+			"fr": "Réinitialise le fichier de configuration config."
+		}
+},
+{
+		"id": "reset_default_logging",
+		"name": "Reset the logging file and restore a default one.",
+		"command": "/bin/bash scripts/actions/reset_default_config \"logging\"",
+		"user": "root",
+		"accepted_return_codes": [0],
+		"description": {
+			"en": "Reset the config file logging.",
+			"fr": "Réinitialise le fichier de configuration logging."
+		}
+},
+{
+		"id": "reset_default_rights",
+		"name": "Reset the rights file and restore a default one.",
+		"command": "/bin/bash scripts/actions/reset_default_config \"rights\"",
+		"user": "root",
+		"accepted_return_codes": [0],
+		"description": {
+			"en": "Reset the config file rights.",
+			"fr": "Réinitialise le fichier de configuration rights."
+		}
+}]
