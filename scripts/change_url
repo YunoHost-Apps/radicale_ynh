@@ -32,7 +32,7 @@ final_path=$(ynh_app_setting_get $app final_path)
 # CHECK THE SYNTAX OF THE PATHS
 #=================================================
 
-# Remove /infcloud in old_path
+# Remove /infcloud in $old_path
 if [ $infcloud -eq 1 ]
 then
 	old_path="${old_path%/infcloud}"
@@ -127,17 +127,19 @@ fi
 #=================================================
 
 if [ $infcloud -eq 1 ]
-then	# /infcloud vient se rajouter à l'adresse de radicale pour y être associé sur le portail.
+then
+	# Add /infcloud to the path of radicale to access it from the portal
 	echo "sudo yunohost --verbose app setting $app path -v \"${new_path%/}/infcloud\"; sudo yunohost app ssowatconf" | at now + 1 min >&2
 	domain_regex=$(echo "$new_domain" | sed 's@-@.@g')
-	ynh_app_setting_set $app skipped_regex "$domain_regex$new_path"	# Radicale est accessible librement (pour l'accès distant aux ressources)
+	# Radicale is always accessible (For access to ressources)
+	ynh_app_setting_set $app skipped_regex "$domain_regex$new_path"
 fi
 
 #=================================================
 # RESTART UWSGI
 #=================================================
 
-ynh_system_reload --service_name=uwsgi --action=restart
+ynh_systemd_action --action=restart --service_name=uwsgi
 
 #=================================================
 # GENERIC FINALISATION
@@ -145,7 +147,7 @@ ynh_system_reload --service_name=uwsgi --action=restart
 # RELOAD NGINX
 #=================================================
 
-ynh_system_reload --service_name=nginx
+ynh_systemd_action --action=reload --service_name=nginx
 
 #=================================================
 # DEACTIVE MAINTENANCE MODE

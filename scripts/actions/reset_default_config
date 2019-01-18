@@ -59,7 +59,7 @@ then
 	cp /etc/yunohost/apps/$app/conf/config.js "$config_file"
 
 	# Recreate the default config
-	# Détermine la langue
+	# Set language
 	case "$language" in
 		"Czech") language="cs_CZ"
 		;;
@@ -145,4 +145,4 @@ fi
 ynh_store_file_checksum "$config_file"
 
 # Restart uwsgi to restart radicale
-ynh_system_reload --service_name=uwsgi --action=restart
+ynh_systemd_action --action=restart --service_name=uwsgi
