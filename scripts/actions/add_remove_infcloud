@@ -54,14 +54,14 @@ then
 	endofbusiness=$(ynh_app_setting_get $app endofbusiness)
 	defaulteventduration=$(ynh_app_setting_get $app defaulteventduration)
 
-	# Ajoute InfCloud dans la config Nginx
+	# Add InfCloud to nginx config
 	ynh_replace_string "#INFCLOUD#" "" /etc/nginx/conf.d/$domain.d/$app.conf
 
 	# Install InfCloud
 	(YNH_CWD="$YNH_CWD/scripts"; ynh_setup_source "$final_path/infcloud")
 
-	# Configuration de InfCloud
-	# Détermine la langue
+	# InfCloud configuration
+	# Set language
 	case "$language" in
 		"Czech") language="cs_CZ"
 		;;
@@ -120,7 +120,8 @@ then
 	if [ -n "$defaulteventduration" ]; then
 		ynh_replace_string "\(^var globalDefaultEventDuration=\).*" "\1$defaulteventduration;" "$final_path/infcloud/config.js"
 	fi
-	ynh_store_file_checksum "$final_path/infcloud/config.js"	# Réenregistre la somme de contrôle du fichier de config
+	# Recalculate and store the checksum of the file for the next upgrade.
+	ynh_store_file_checksum "$final_path/infcloud/config.js"
 
 	# Fix permission
 	chown -R radicale: $final_path
@@ -129,13 +130,13 @@ then
 	(cd scripts; ynh_add_fpm_config)
 
 	# Setup SSOWat
-	# /infcloud vient se rajouter à l'adresse de radicale pour y être associé sur le portail.
-	# Remplace radicale par InfCloud dans le portail Yunohost
+	# Add /infcloud to the path of radicale to access it from the portal
+	# Replace radicale by InfCloud into YunoHost portal
 	ynh_app_setting_set $app path ${path_url%/}/infcloud
-	# Protège l'accès à infcloud
+	# Protect InfCloud access
 	ynh_app_setting_set $app protected_uris "/"
 	domain_regex=$(echo "$domain" | sed 's@-@.@g')
-	# Radicale est accessible librement (pour l'accès distant aux ressources)
+	# Radicale is always accessible (For access to ressources)
 	ynh_app_setting_set $app skipped_regex "$domain_regex$path_url"
 	# Remove the previous entry for unprotected_uris
 	ynh_app_setting_delete $app unprotected_uris
@@ -153,13 +154,13 @@ else
 	ynh_remove_fpm_config
 
 	# Setup SSOWat
-	# Remplace InfCloud par radicale dans le portail Yunohost
+	# Replace InfCloud by radicale into YunoHost portal
 	ynh_app_setting_set $app path $path_url
 	# Remove the previous entry for protected_uris and skipped_regex
 	ynh_app_setting_delete $app protected_uris
 	ynh_app_setting_delete $app skipped_regex
 
-	# Radicale est accessible librement (pour l'accès distant aux ressources)
+	# Radicale is always accessible (For access to ressources)
 	ynh_app_setting_set $app unprotected_uris "/"
 fi
 

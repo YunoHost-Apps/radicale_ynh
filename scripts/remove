@@ -23,8 +23,8 @@ domain=$(ynh_app_setting_get $app domain)
 # STOP AND REMOVE SERVICE
 #=================================================
 
-# Suppression de la configuration uwsgi
-ynh_system_reload --service_name=uwsgi --action=stop
+# Delete uwsgi configuration
+ynh_systemd_action --action=stop --service_name=uwsgi
 if [ -h "/etc/uwsgi/apps-enabled/radicale.ini" ]; then
 	echo "Delete uwsgi config"
 	ynh_secure_remove "/etc/uwsgi/apps-enabled/radicale.ini"
@@ -35,51 +35,56 @@ ynh_secure_remove "/etc/uwsgi/apps-available/radicale.ini"
 # REMOVE DEPENDENCIES
 #=================================================
 
+# Remove metapackage and its dependencies
 ynh_remove_app_dependencies
 
 #=================================================
-# REMOVE THE MAIN DIR OF THE APP
+# REMOVE APP MAIN DIR
 #=================================================
 
-ynh_secure_remove "/var/www/$app"	# Suppression du dossier de l'application
+ynh_secure_remove "/var/www/$app"
 ynh_secure_remove "/opt/yunohost/$app"
 
 #=================================================
-# REMOVE THE NGINX CONFIGURATION
+# REMOVE NGINX CONFIGURATION
 #=================================================
 
-ynh_remove_nginx_config	# Suppression de la configuration nginx
+# Remove the dedicated nginx config
+ynh_remove_nginx_config
 
 #=================================================
-# REMOVE THE PHP-FPM CONFIGURATION
+# REMOVE PHP-FPM CONFIGURATION
 #=================================================
 
-ynh_remove_fpm_config	# Suppression de la configuration du pool php-fpm
+# Remove the dedicated php-fpm config
+ynh_remove_fpm_config
 
 #=================================================
-# REMOVE THE LOGROTATE CONFIG
+# REMOVE LOGROTATE CONFIG
 #=================================================
 
-ynh_remove_logrotate	# Suppression de la configuration de logrotate
+# Remove the app-specific logrotate config
+ynh_remove_logrotate
 
 #=================================================
 # SPECIFIC REMOVE
 #=================================================
-# REMOVE RADICALE'S CONFIG
+# REMOVE RADICALE CONFIG
 #=================================================
 
-ynh_secure_remove "/etc/$app"	# Delete radicale config
+ynh_secure_remove "/etc/$app"
 
 #=================================================
-# DISABLE SERVICE IN ADMIN PANEL
+# REMOVE SERVICE FROM ADMIN PANEL
 #=================================================
 
 if [ -e /etc/init.d/uwsgi ]
 then
-	# Redémarre le service uwsgi si il n'est pas désinstallé.
-	ynh_system_reload --service_name=uwsgi --action=start
+	# Restart uwsgi service
+	ynh_systemd_action --action=start --service_name=uwsgi
 else
-	if yunohost service status | grep -q uwsgi	# Test l'existence du service dans Yunohost
+	# Check if the service is declared in YunoHost
+	if yunohost service status | grep -q uwsgi
 	then
 		ynh_print_info "Remove uwsgi service" >&2
 		yunohost service remove uwsgi

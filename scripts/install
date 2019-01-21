@@ -15,7 +15,8 @@ source _variables
 # MANAGE FAILURE OF THE SCRIPT
 #=================================================
 
-ynh_abort_if_errors	# Active trap pour arrêter le script si une erreur est détectée.
+# Exit if an error occurs during the execution of the script
+ynh_abort_if_errors
 
 #=================================================
 # RETRIEVE ARGUMENTS FROM THE MANIFEST
@@ -29,7 +30,8 @@ language=$YNH_APP_ARG_LANGUAGE
 
 app=$YNH_APP_INSTANCE_NAME
 
-version=$(grep '\"version\": ' ../manifest.json | cut -d '"' -f 4 | cut -d '~' -f 1)	# Retrieve the version number in the manifest file.
+# Retrieve the version number in the manifest file.
+version=$(ynh_app_upstream_version)
 
 #=================================================
 # CHECK IF THE APP CAN BE INSTALLED WITH THIS ARGS
@@ -41,8 +43,6 @@ test ! -e "$final_path" || ynh_die "This path already contains a folder"
 # Normalize the url path syntax
 path_url=$(ynh_normalize_url_path $path_url)
 
-# Check web path availability
-ynh_webpath_available $domain $path_url
 # Register (book) web path
 ynh_webpath_register $app $domain $path_url
 
@@ -75,7 +75,8 @@ ynh_install_app_dependencies $app_depencencies
 
 ynh_add_nginx_config
 if [ $infcloud -eq 1 ]
-then	# Ajoute InfCloud dans la config Nginx
+then
+	# Add InfCloud in Nginx config
 	ynh_replace_string "#INFCLOUD#" "" /etc/nginx/conf.d/$domain.d/$app.conf
 fi
 ynh_store_file_checksum "$finalnginxconf"
@@ -84,7 +85,8 @@ ynh_store_file_checksum "$finalnginxconf"
 # CREATE DEDICATED USER
 #=================================================
 
-ynh_system_user_create $app	# Créer un utilisateur système dédié à l'app
+# Create a dedicated system user
+ynh_system_user_create $app
 
 #=================================================
 # SPECIFIC SETUP
@@ -101,23 +103,28 @@ version=$(ynh_app_setting_get $app version $version)
 # COPY FILES INTO $FINAL_PATH
 #=================================================
 
-# Crée le repertoire de destination et stocke son emplacement.
+# Create the directory and set the path in the config
 mkdir "$final_path"
 ynh_app_setting_set $app final_path $final_path
 
 # Copy files to the right place
 mkdir -p $final_path/collections
 cp ../conf/radicale.wsgi $final_path
-# Copie les fichiers additionnels ou modifiés.
+# Copy extra files
 cp -a ../sources/extra_files_radicale/. "$final_path"
-# Le fichier regex.py est patché pour corrigé le commit destructeur e807c3d35bea9cfcfcacac83b1b17d748ea15a39 du 3/12/2015 qui arrête la lecture du fichier rights à la première occurence validée.
+# regex.py file is patched to fix the awful commit e807c3d35bea9cfcfcacac83b1b17d748ea15a39 that stop the reading of "rights" file after the first match.
 mv "$final_path/regex.py" /opt/yunohost/$app/lib/python*/site-packages/radicale/rights/regex.py
 if [ $infcloud -eq 1 ]
-then	#Instal InfCloud
-	final_path_backup=$final_path	# Sauvegarde le contenu de $final_path
-	final_path=$final_path/infcloud	# Change final_path pour l'installation de infcloud
-	ynh_setup_source "$final_path"	# Télécharge la source, décompresse et copie dans $final_path
-	final_path=$final_path_backup	# Restaure le contenu de $final_path
+then
+	#Instal InfCloud
+	# Backup the content of $final_path
+	final_path_backup=$final_path
+	# Modify final_path for InfCloud installation
+	final_path=$final_path/infcloud
+	# Download and uncompress the source into final_path
+	ynh_setup_source "$final_path"
+	# Restore the content of $final_path
+	final_path=$final_path_backup
 fi
 
 #=================================================
@@ -130,11 +137,14 @@ cp ../conf/logging /etc/$app/
 cp ../conf/rights /etc/$app/
 ynh_replace_string "__PATH__" "${path_url%/}" /etc/$app/config
 ynh_replace_string "__FINALPATH__" "$final_path" /etc/$app/config
-ynh_store_file_checksum "/etc/$app/config"	# Enregistre la somme de contrôle du fichier de config
-ynh_store_file_checksum "/etc/$app/logging"	# Enregistre la somme de contrôle du fichier de config
+# Calculate and store the config file checksum into the app settings
+ynh_store_file_checksum "/etc/$app/config"
+# Calculate and store the config file checksum into the app settings
+ynh_store_file_checksum "/etc/$app/logging"
 if [ $infcloud -eq 1 ]
-then	#Configuration InfCloud
-	# Détermine la langue
+then
+	# InfCloud configuration
+	# Set language
 	case "$language" in
 		"Czech") language="cs_CZ"
 		;;
@@ -174,7 +184,8 @@ then	#Configuration InfCloud
 	ynh_replace_string "__LANG__" "$language" "$final_path/infcloud/config.js"
 	ynh_replace_string "__ADMIN__" "$admin" "$final_path/infcloud/config.js"
 	ynh_replace_string "__TIMEZONE__" "$(cat /etc/timezone)" "$final_path/infcloud/config.js"
-	ynh_store_file_checksum "$final_path/infcloud/config.js"	# Enregistre la somme de contrôle du fichier de config
+	# Calculate and store the config file checksum into the app settings
+	ynh_store_file_checksum "$final_path/infcloud/config.js"
 fi
 
 #=================================================
@@ -188,11 +199,11 @@ chown -R radicale: $final_path
 mkdir -p /var/log/$app
 touch /var/log/$app/$app.log
 chown radicale -R /var/log/$app
-# Droit par défaut des dossiers de collections utilisateurs, tels qu'ils sont créés par radicale.
+# Set default permissions as radicale do.
 chmod 666 -R $final_path/default_collections
 chmod 777 $final_path/default_collections $final_path/default_collections/USER
 
-# Fix permission
+# Set permissions
 chmod 755 /etc/$app/
 find /opt/yunohost/$app/ -type d -exec chmod 2755 {} \;
 find /opt/yunohost/$app/ -type f -exec chmod g+r,o+r {} \;
@@ -209,27 +220,26 @@ ln -s /etc/uwsgi/apps-available/radicale.ini /etc/uwsgi/apps-enabled/
 # GENERATE CALENDARS AND ADDRESS BOOKS FOR ALL USERS
 #=================================================
 
-# Créer les calendriers et carnets d'adresses par défaut des utilisateurs.
-while read user	#USER en majuscule est une variable système, à éviter.
+# Create default calendars and address books for each users
+while read user
 do
 		cp -a $final_path/default_collections/USER $final_path/collections/$user
 		cp -a $final_path/default_collections/USER.props $final_path/collections/$user.props
-done <<< "$(yunohost user list | grep username | cut -d ":" -f 2 | cut -c 2-)"	# Liste les utilisateurs et supprime l'espace après username:
-# Le triple chevron <<< permet de prendre la sortie de commande en entrée de boucle.
+# List all users and remove the space after username
+done <<< "$(yunohost user list | grep username | cut -d ":" -f 2 | cut -c 2-)"
 
 #=================================================
-# ENABLE UWSGI SERVICE IN ADMIN PANEL
+# ADVERTISE SERVICE IN ADMIN PANEL
 #=================================================
 
-ynh_system_reload --service_name=uwsgi --action=restart
-# Ajoute le service au monitoring de Yunohost.
+ynh_systemd_action --action=restart --service_name=uwsgi
 yunohost service add uwsgi --log "/var/log/uwsgi/app/radicale.log"
 
 #=================================================
 # PREPARE THE HOOKS
 #=================================================
 
-# Modification des hook pour la création des collections par défaut des nouveaux utilisateurs. Et leur suppression
+# Modify the hooks for create user collections and to remove them.
 ynh_replace_string "__FINALPATH__" "$final_path" ../hooks/post_user_create
 ynh_replace_string "__FINALPATH__" "$final_path" ../hooks/post_user_delete
 
@@ -240,19 +250,26 @@ ynh_replace_string "__FINALPATH__" "$final_path" ../hooks/post_user_delete
 #=================================================
 
 if [ $infcloud -eq 1 ]
-then	# /infcloud vient se rajouter à l'adresse de radicale pour y être associé sur le portail.
-	ynh_app_setting_set $app path ${path_url%/}/infcloud	# Remplace radicale par InfCloud dans le portail Yunohost
-	ynh_app_setting_set $app protected_uris "/"	# Protège l'accès à infcloud
+then
+	# Add /infcloud to the path of radicale to access it from the portal
+	# Replace radicale by InfCloud into YunoHost portal
+	ynh_app_setting_set $app path ${path_url%/}/infcloud
+	# Protect InfCloud access
+	ynh_app_setting_set $app protected_uris "/"
 	domain_regex=$(echo "$domain" | sed 's@-@.@g')
-	ynh_app_setting_set $app skipped_regex "$domain_regex$path_url"	# Radicale est accessible librement (pour l'accès distant aux ressources)
-else	# Si seul radicale est installé.
-	ynh_app_setting_set $app unprotected_uris "/"	# Radicale est accessible librement (pour l'accès distant aux ressources)
+	# Radicale is always accessible (For access to ressources)
+	ynh_app_setting_set $app skipped_regex "$domain_regex$path_url"
+else
+	# If only radicale is installed
+	# Radicale is always accessible (For access to ressources)
+	ynh_app_setting_set $app unprotected_uris "/"
 fi
 
 #=================================================
 # SETUP LOGROTATE
 #=================================================
 
+# Use logrotate to manage application logfile(s)
 ynh_use_logrotate
 
 #=================================================
@@ -261,18 +278,22 @@ ynh_use_logrotate
 
 if [ $infcloud -eq 1 ]
 then
-	ynh_add_fpm_config	# Créer le fichier de configuration du pool php-fpm et le configure.
+	# Create a dedicated php-fpm config
+	ynh_add_fpm_config
 fi
 
 #=================================================
 # RELOAD NGINX
 #=================================================
 
-ynh_system_reload --service_name=nginx
+ynh_systemd_action --action=reload --service_name=nginx
 
 #=================================================
 # SEND A README FOR THE ADMIN
 #=================================================
+
+# Get main domain and buid the url of the admin panel of the app.
+admin_panel="https://$(grep portal_domain /etc/ssowat/conf.json | cut -d'"' -f4)/yunohost/admin/#/apps/$app"
 
 if [ $infcloud -eq 1 ]
 then
@@ -285,8 +306,11 @@ fi
 
 message="Use the file /etc/radicale/config to change the main configuration of radicale.
 The file /etc/radicale/logging to change the level of logging.
-And the file /etc/radicale/rights to edit the way the calendars will be sharing.
+And the file /etc/radicale/rights to edit the way the calendars will be shared.
 $infcloud_config
-If you facing an issue or want to improve this app, please open a new issue in this project: https://github.com/YunoHost-Apps/radicale_ynh"
+You can configure this app easily by using the experimental config-panel feature: $admin_panel/config-panel.
+You can also find some specific actions for this app by using the experimental action feature: $admin_panel/actions.
 
-ynh_send_readme_to_admin --app_message="$message" --recipients="$admin"
+If you're facing an issue or want to improve this app, please open a new issue in this project: https://github.com/YunoHost-Apps/radicale_ynh"
+
+ynh_send_readme_to_admin --app_message="$message" --recipients="$admin" --type="install"
