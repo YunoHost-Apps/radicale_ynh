@@ -70,7 +70,7 @@ Merci de faire vos pull request sur la [branche testing](https://github.com/Yuno
 
 Pour tester la branche testing, merci de procéder ainsi.
 ```
-sudo yunohost app install https://github.com/YunoHost-Apps/radicale_ynh/tree/testing --verbose
+sudo yunohost app install https://github.com/YunoHost-Apps/radicale_ynh/tree/testing --debug
 ou
-sudo yunohost app upgrade radicale -u https://github.com/YunoHost-Apps/radicale_ynh/tree/testing --verbose
+sudo yunohost app upgrade radicale -u https://github.com/YunoHost-Apps/radicale_ynh/tree/testing --debug
 ```

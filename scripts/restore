@@ -140,6 +140,9 @@ ynh_maintenance_mode_OFF
 # SEND A README FOR THE ADMIN
 #=================================================
 
+# Get main domain and buid the url of the admin panel of the app.
+admin_panel="https://$(grep portal_domain /etc/ssowat/conf.json | cut -d'"' -f4)/yunohost/admin/#/apps/$app"
+
 if [ $infcloud -eq 1 ]
 then
 	infcloud_config="
@@ -153,6 +156,9 @@ message="Use the file /etc/radicale/config to change the main configuration of r
 The file /etc/radicale/logging to change the level of logging.
 And the file /etc/radicale/rights to edit the way the calendars will be shared.
 $infcloud_config
+You can configure this app easily by using the experimental config-panel feature: $admin_panel/config-panel.
+You can also find some specific actions for this app by using the experimental action feature: $admin_panel/actions.
+
 If you're facing an issue or want to improve this app, please open a new issue in this project: https://github.com/YunoHost-Apps/radicale_ynh"
 
-ynh_send_readme_to_admin --app_message="$message" --recipients="$admin"
+ynh_send_readme_to_admin --app_message="$message" --recipients="$admin" --type="restore"

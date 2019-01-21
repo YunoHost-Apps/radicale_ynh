@@ -6,7 +6,7 @@
 		"en": "CalDAV (calendar) and CardDAV (contact) synchronization server",
 		"fr": "Serveur de synchronisation CalDAV et CardDAV"
 	},
-	"version": "1.1.6~ynh3",
+	"version": "1.1.6~ynh4",
 	"url": "http://radicale.org",
 	"license": "GPL-3.0,AGPL-3.0",
 	"maintainer": {
@@ -14,7 +14,7 @@
 		"email": "maniackc_dev@crudelis.fr"
 	},
 	"requirements": {
-		"yunohost": ">= 2.7.14"
+		"yunohost": ">= 3.3.3"
 	},
 	"multi_instance": false,
 	"services": [
