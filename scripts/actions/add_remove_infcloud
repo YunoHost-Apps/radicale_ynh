@@ -12,6 +12,7 @@ source /usr/share/yunohost/helpers
 #=================================================
 # RETRIEVE ARGUMENTS
 #=================================================
+ynh_script_progression --message="Retrieve arguments from the manifest"
 
 app=${YNH_APP_INSTANCE_NAME:-$YNH_APP_ID}
 infcloud=$(ynh_app_setting_get $app infcloud)
@@ -23,10 +24,10 @@ final_path=$(ynh_app_setting_get $app final_path)
 
 if [ $infcloud -eq 1 ]
 then
-	ynh_print_info "InfCloud will be removed." >&2
+	action_print="Remove"
 	infcloud=0
 else
-	ynh_print_info "InfCloud will be installed." >&2
+	action_print="Install"
 	infcloud=1
 fi
 
@@ -35,6 +36,7 @@ fi
 #=================================================
 # INSTALL OR REMOVE INFCLOUD
 #=================================================
+ynh_script_progression --message="$action_print InfCloud." --weight=9
 
 if [ $infcloud -eq 1 ]
 then
@@ -164,8 +166,15 @@ else
 	ynh_app_setting_set $app unprotected_uris "/"
 fi
 
+ynh_script_progression --message="Reconfigure SSOwat"
 # Regen ssowat configuration
 yunohost app ssowatconf
 
 # Update the config of the app
 ynh_app_setting_set $app infcloud $infcloud
+
+#=================================================
+# END OF SCRIPT
+#=================================================
+
+ynh_script_progression --message="Execution completed" --last

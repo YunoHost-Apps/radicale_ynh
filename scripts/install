@@ -21,6 +21,7 @@ ynh_abort_if_errors
 #=================================================
 # RETRIEVE ARGUMENTS FROM THE MANIFEST
 #=================================================
+ynh_script_progression --message="Retrieve arguments from the manifest"
 
 domain=$YNH_APP_ARG_DOMAIN
 path_url=$YNH_APP_ARG_PATH
@@ -36,6 +37,7 @@ version=$(ynh_app_upstream_version)
 #=================================================
 # CHECK IF THE APP CAN BE INSTALLED WITH THIS ARGS
 #=================================================
+ynh_script_progression --message="Check if the app can be installed"
 
 final_path=/var/www/$app
 test ! -e "$final_path" || ynh_die "This path already contains a folder"
@@ -49,6 +51,7 @@ ynh_webpath_register $app $domain $path_url
 #=================================================
 # STORE SETTINGS FROM MANIFEST
 #=================================================
+ynh_script_progression --message="Store settings from manifest" --weight=4
 
 ynh_app_setting_set $app domain $domain
 ynh_app_setting_set $app path $path_url
@@ -66,12 +69,14 @@ ynh_app_setting_set $app overwrite_phpfpm "1"
 #=================================================
 # INSTALL DEPENDENCIES
 #=================================================
+ynh_script_progression --message="Install dependencies" --weight=25
 
 ynh_install_app_dependencies $app_depencencies
 
 #=================================================
 # NGINX CONFIGURATION
 #=================================================
+ynh_script_progression --message="Configure nginx" --weight=2
 
 ynh_add_nginx_config
 if [ $infcloud -eq 1 ]
@@ -84,6 +89,7 @@ ynh_store_file_checksum "$finalnginxconf"
 #=================================================
 # CREATE DEDICATED USER
 #=================================================
+ynh_script_progression --message="Create a dedicated user" --weight=2
 
 # Create a dedicated system user
 ynh_system_user_create $app
@@ -93,6 +99,7 @@ ynh_system_user_create $app
 #=================================================
 # INSTALL RADICALE IN A VIRTUALENV
 #=================================================
+ynh_script_progression --message="Install radicale in a virtualenv" --weight=15
 
 # Init virtualenv
 virtualenv /opt/yunohost/$app
@@ -102,6 +109,7 @@ version=$(ynh_app_setting_get $app version $version)
 #=================================================
 # COPY FILES INTO $FINAL_PATH
 #=================================================
+ynh_script_progression --message="Download, check and unpack source" --weight=2
 
 # Create the directory and set the path in the config
 mkdir "$final_path"
@@ -130,6 +138,7 @@ fi
 #=================================================
 # CONFIGURE RADICALE
 #=================================================
+ynh_script_progression --message="Configure Radicale" --weight=5
 
 mkdir -p /etc/$app
 cp ../conf/config /etc/$app/
@@ -219,6 +228,7 @@ ln -s /etc/uwsgi/apps-available/radicale.ini /etc/uwsgi/apps-enabled/
 #=================================================
 # GENERATE CALENDARS AND ADDRESS BOOKS FOR ALL USERS
 #=================================================
+ynh_script_progression --message="Generate calendars and address books for all users" --weight=3
 
 # Create default calendars and address books for each users
 while read user
@@ -231,6 +241,7 @@ done <<< "$(yunohost user list | grep username | cut -d ":" -f 2 | cut -c 2-)"
 #=================================================
 # ADVERTISE SERVICE IN ADMIN PANEL
 #=================================================
+ynh_script_progression --message="Restart Radicale" --weight=2
 
 ynh_systemd_action --action=restart --service_name=uwsgi
 yunohost service add uwsgi --log "/var/log/uwsgi/app/radicale.log"
@@ -248,6 +259,7 @@ ynh_replace_string "__FINALPATH__" "$final_path" ../hooks/post_user_delete
 #=================================================
 # SETUP SSOWAT
 #=================================================
+ynh_script_progression --message="Setup SSOwat" --weight=3
 
 if [ $infcloud -eq 1 ]
 then
@@ -268,6 +280,7 @@ fi
 #=================================================
 # SETUP LOGROTATE
 #=================================================
+ynh_script_progression --message="Configure logrotate" --weight=2
 
 # Use logrotate to manage application logfile(s)
 ynh_use_logrotate
@@ -278,6 +291,7 @@ ynh_use_logrotate
 
 if [ $infcloud -eq 1 ]
 then
+	ynh_script_progression --message="Configure php-fpm" --weight=4
 	# Create a dedicated php-fpm config
 	ynh_add_fpm_config
 fi
@@ -285,6 +299,7 @@ fi
 #=================================================
 # RELOAD NGINX
 #=================================================
+ynh_script_progression --message="Reload nginx" --weight=4
 
 ynh_systemd_action --action=reload --service_name=nginx
 
@@ -312,5 +327,9 @@ You can configure this app easily by using the experimental config-panel feature
 You can also find some specific actions for this app by using the experimental action feature: $admin_panel/actions.
 
 If you're facing an issue or want to improve this app, please open a new issue in this project: https://github.com/YunoHost-Apps/radicale_ynh"
+#=================================================
+# END OF SCRIPT
+#=================================================
 
 ynh_send_readme_to_admin --app_message="$message" --recipients="$admin" --type="install"
+ynh_script_progression --message="Installation completed" --last
