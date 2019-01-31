@@ -8,6 +8,8 @@
 
 source _common.sh
 source /usr/share/yunohost/helpers
+# Load common variables for all scripts.
+source _variables
 
 #=================================================
 # LOAD SETTINGS
@@ -136,6 +138,13 @@ ynh_maintenance_mode_ON
 
 #=================================================
 # STANDARD UPGRADE STEPS
+#=================================================
+# UPGRADE DEPENDENCIES
+#=================================================
+ynh_script_progression --message="Upgrade dependencies"
+
+ynh_install_app_dependencies $app_depencencies
+
 #=================================================
 # NGINX CONFIGURATION
 #=================================================
