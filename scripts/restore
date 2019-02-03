@@ -21,6 +21,7 @@ ynh_abort_if_errors
 #=================================================
 # LOAD SETTINGS
 #=================================================
+ynh_script_progression --message="Load settings" --weight=2
 
 app=$YNH_APP_INSTANCE_NAME
 
@@ -44,6 +45,7 @@ test ! -d "/opt/yunohost/$app" \
 #=================================================
 # ACTIVATE MAINTENANCE MODE
 #=================================================
+ynh_script_progression --message="Activate maintenance mode" --weight=2
 
 ynh_maintenance_mode_ON
 
@@ -58,12 +60,14 @@ ynh_restore_file "/etc/nginx/conf.d/$domain.d/$app.conf"
 #=================================================
 # REINSTALL DEPENDENCIES
 #=================================================
+ynh_script_progression --message="Reinstall dependencies" --weight=25
 
 ynh_install_app_dependencies $app_depencencies
 
 #=================================================
 # RESTORE THE APP MAIN DIR
 #=================================================
+ynh_script_progression --message="Restore the app main directory"
 
 ynh_restore_file "$final_path"
 mkdir -p /opt/yunohost
@@ -72,6 +76,7 @@ ynh_restore_file "/opt/yunohost/$app"
 #=================================================
 # RECREATE THE DEDICATED USER
 #=================================================
+ynh_script_progression --message="Recreate the dedicated user" --weight=3
 
 # Create the dedicated user (if not existing)
 ynh_system_user_create $app
@@ -82,8 +87,9 @@ ynh_system_user_create $app
 
 if [ $infcloud -eq 1 ]
 then
-	ynh_restore_file "/etc/php5/fpm/pool.d/$app.conf"
-	ynh_systemd_action --action=reload --service_name=php5-fpm
+	ynh_script_progression --message="Reload php-fpm" --weight=2
+	ynh_restore_file "/etc/php/7.0/fpm/pool.d/$app.conf"
+	ynh_systemd_action --action=reload --service_name=php7.0-fpm
 fi
 
 #=================================================
@@ -126,6 +132,7 @@ ynh_restore_file "/etc/logrotate.d/$app"
 #=================================================
 # RELOAD NGINX AND UWSGI
 #=================================================
+ynh_script_progression --message="Reload nginx and restart Radicale"
 
 ynh_systemd_action --action=restart --service_name=uwsgi
 ynh_systemd_action --action=reload --service_name=nginx
@@ -133,6 +140,7 @@ ynh_systemd_action --action=reload --service_name=nginx
 #=================================================
 # DEACTIVE MAINTENANCE MODE
 #=================================================
+ynh_script_progression --message="Disable maintenance mode" --weight=4
 
 ynh_maintenance_mode_OFF
 
@@ -152,13 +160,19 @@ else
 	infcloud_config=""
 fi
 
-message="Use the file /etc/radicale/config to change the main configuration of radicale.
+echo "Use the file /etc/radicale/config to change the main configuration of radicale.
 The file /etc/radicale/logging to change the level of logging.
 And the file /etc/radicale/rights to edit the way the calendars will be shared.
 $infcloud_config
-You can configure this app easily by using the experimental config-panel feature: $admin_panel/config-panel.
-You can also find some specific actions for this app by using the experimental action feature: $admin_panel/actions.
+You can configure this app easily by using the experimental __URL_TAG1__config-panel feature__URL_TAG2__$admin_panel/config-panel__URL_TAG3__.
+You can also find some specific actions for this app by using the experimental __URL_TAG1__action feature__URL_TAG2__$admin_panel/actions__URL_TAG3__.
 
-If you're facing an issue or want to improve this app, please open a new issue in this project: https://github.com/YunoHost-Apps/radicale_ynh"
+If you're facing an issue or want to improve this app, please open a new issue in this __URL_TAG1__project__URL_TAG2__https://github.com/YunoHost-Apps/radicale_ynh__URL_TAG3__." > mail_to_send
 
-ynh_send_readme_to_admin --app_message="$message" --recipients="$admin" --type="restore"
+ynh_send_readme_to_admin --app_message="mail_to_send" --recipients="$admin" --type="restore"
+
+#=================================================
+# END OF SCRIPT
+#=================================================
+
+ynh_script_progression --message="Restoration completed" --last

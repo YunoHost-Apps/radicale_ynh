@@ -8,10 +8,13 @@
 
 source _common.sh
 source /usr/share/yunohost/helpers
+# Load common variables for all scripts.
+source _variables
 
 #=================================================
 # LOAD SETTINGS
 #=================================================
+ynh_script_progression --message="Load settings" --weight=6
 
 app=$YNH_APP_INSTANCE_NAME
 
@@ -45,6 +48,7 @@ upgrade_type=$(ynh_check_app_version_changed)
 #=================================================
 # ENSURE DOWNWARD COMPATIBILITY
 #=================================================
+ynh_script_progression --message="Ensure downward compatibility"
 
 ynh_app_setting_delete $app unprotected_regex
 
@@ -103,6 +107,7 @@ fi
 #=================================================
 # BACKUP BEFORE UPGRADE THEN ACTIVE TRAP
 #=================================================
+ynh_script_progression --message="Backup the app before upgrading" --weight=9
 
 # Backup the current version of the app
 ynh_backup_before_upgrade
@@ -127,11 +132,19 @@ path_url=$(ynh_normalize_url_path $path_url)
 #=================================================
 # ACTIVATE MAINTENANCE MODE
 #=================================================
+ynh_script_progression --message="Activate maintenance mode"
 
 ynh_maintenance_mode_ON
 
 #=================================================
 # STANDARD UPGRADE STEPS
+#=================================================
+# UPGRADE DEPENDENCIES
+#=================================================
+ynh_script_progression --message="Upgrade dependencies"
+
+ynh_install_app_dependencies $app_depencencies
+
 #=================================================
 # NGINX CONFIGURATION
 #=================================================
@@ -139,6 +152,7 @@ ynh_maintenance_mode_ON
 # Overwrite the nginx configuration only if it's allowed
 if [ $overwrite_nginx -eq 1 ]
 then
+	ynh_script_progression --message="Reconfigure nginx" --weight=2
 	ynh_add_nginx_config
 	if [ $infcloud -eq 1 ]
 	then
@@ -151,6 +165,7 @@ fi
 #=================================================
 # CREATE DEDICATED USER
 #=================================================
+ynh_script_progression --message="Create a dedicated user"
 
 # Create a dedicated user (if not existing)
 ynh_system_user_create $app
@@ -164,6 +179,7 @@ then
 	# Overwrite the php-fpm configuration only if it's allowed
 	if [ $overwrite_phpfpm -eq 1 ]
 	then
+		ynh_script_progression --message="Reconfigure php-fpm" --weight=2
 		# Create a dedicated php-fpm config
 		ynh_add_fpm_config
 	fi
@@ -177,6 +193,7 @@ fi
 
 if [ "$upgrade_type" == "UPGRADE_APP" ]
 then
+	ynh_script_progression --message="Upgrade Radicale in its virtualenv" --weight=6
 	# Upgrade pip packages
 	ynh_secure_remove /opt/yunohost/$app
 	virtualenv /opt/yunohost/$app
@@ -187,6 +204,7 @@ fi
 #=================================================
 # COPY FILES INTO $FINAL_PATH
 #=================================================
+ynh_script_progression --message="Download, check and unpack source"
 
 # Copy files to the right place
 mkdir -p $final_path/collections
@@ -221,6 +239,7 @@ fi
 #=================================================
 # CONFIGURE RADICALE
 #=================================================
+ynh_script_progression --message="Reconfigure Radicale" --weight=5
 
 # Overwrite the logging config file only if it's allowed
 if [ $overwrite_logging -eq 1 ]
@@ -345,6 +364,7 @@ cp ../conf/radicale.ini /etc/uwsgi/apps-available/
 #=================================================
 # RESTART UWSGI
 #=================================================
+ynh_script_progression --message="Restart Radicale" --weight=3
 
 ynh_systemd_action --action=restart --service_name=uwsgi
 
@@ -359,6 +379,7 @@ ynh_replace_string "__FINALPATH__" "$final_path" ../hooks/post_user_delete
 #=================================================
 # SETUP LOGROTATE
 #=================================================
+ynh_script_progression --message="Reconfigure logrotate" --weight=3
 
 ynh_use_logrotate --non-append
 
@@ -367,6 +388,7 @@ ynh_use_logrotate --non-append
 #=================================================
 # SETUP SSOWAT
 #=================================================
+ynh_script_progression --message="Reconfigure SSOwat" --weight=2
 
 if [ $infcloud -eq 1 ]
 then
@@ -387,12 +409,14 @@ fi
 #=================================================
 # RELOAD NGINX
 #=================================================
+ynh_script_progression --message="Reload nginx"
 
 ynh_systemd_action --action=reload --service_name=nginx
 
 #=================================================
 # DEACTIVE MAINTENANCE MODE
 #=================================================
+ynh_script_progression --message="Disable maintenance mode" --weight=5
 
 ynh_maintenance_mode_OFF
 
@@ -403,6 +427,9 @@ ynh_maintenance_mode_OFF
 # Get main domain and buid the url of the admin panel of the app.
 admin_panel="https://$(grep portal_domain /etc/ssowat/conf.json | cut -d'"' -f4)/yunohost/admin/#/apps/$app"
 
+# Build the changelog
+ynh_app_changelog || true
+
 if [ $infcloud -eq 1 ]
 then
 	infcloud_config="
@@ -412,13 +439,24 @@ else
 	infcloud_config=""
 fi
 
-message="Use the file /etc/radicale/config to change the main configuration of radicale.
+echo "Use the file /etc/radicale/config to change the main configuration of radicale.
 The file /etc/radicale/logging to change the level of logging.
 And the file /etc/radicale/rights to edit the way the calendars will be shared.
 $infcloud_config
-You can configure this app easily by using the experimental config-panel feature: $admin_panel/config-panel.
-You can also find some specific actions for this app by using the experimental action feature: $admin_panel/actions.
+You can configure this app easily by using the experimental __URL_TAG1__config-panel feature__URL_TAG2__$admin_panel/config-panel__URL_TAG3__.
+You can also find some specific actions for this app by using the experimental __URL_TAG1__action feature__URL_TAG2__$admin_panel/actions__URL_TAG3__.
 
-If you're facing an issue or want to improve this app, please open a new issue in this project: https://github.com/YunoHost-Apps/radicale_ynh"
+If you're facing an issue or want to improve this app, please open a new issue in this __URL_TAG1__project__URL_TAG2__https://github.com/YunoHost-Apps/radicale_ynh__URL_TAG3__.
 
-ynh_send_readme_to_admin --app_message="$message" --recipients="$admin" --type="upgrade"
+---
+
+Changelog since your last upgrade:
+$(cat changelog)" > mail_to_send
+
+ynh_send_readme_to_admin --app_message="mail_to_send" --recipients="$admin" --type="upgrade"
+
+#=================================================
+# END OF SCRIPT
+#=================================================
+
+ynh_script_progression --message="Upgrade completed" --last
