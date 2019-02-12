@@ -1,4 +1,6 @@
-SOURCE_URL=https://www.inf-it.com/InfCloud_0.13.1.zip
+# SOURCE_URL=https://www.inf-it.com/InfCloud_0.13.1.zip
+# The certificate is broken on inf-it.com, use a alternative url.
+SOURCE_URL=https://crudelis.fr/div/fichiers/div/InfCloud_0.13.1.zip
 SOURCE_SUM=6ffb1b3b9b7f54137723c6c13e9c5635
 SOURCE_SUM_PRG=md5sum
 SOURCE_FORMAT=zip
