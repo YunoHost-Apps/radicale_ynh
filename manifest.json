@@ -10,9 +10,13 @@
 	"url": "http://radicale.org",
 	"license": "GPL-3.0,AGPL-3.0",
 	"maintainer": {
+		"name": "None...",
+		"email": ""
+	},
+	"previous_maintainers": [{
 		"name": "Maniack Crudelis",
 		"email": "maniackc_dev@crudelis.fr"
-	},
+	}],
 	"requirements": {
 		"yunohost": ">= 3.4"
 	},
