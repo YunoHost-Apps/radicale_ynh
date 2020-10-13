@@ -1,6 +1,6 @@
 # Radicale for YunoHost
 
-[![Integration level](https://dash.yunohost.org/integration/radicale.svg)](https://dash.yunohost.org/appci/app/radicale)  
+[![Integration level](https://dash.yunohost.org/integration/radicale.svg)](https://dash.yunohost.org/appci/app/radicale) ![](https://ci-apps.yunohost.org/ci/badges/radicale.status.svg) ![](https://ci-apps.yunohost.org/ci/badges/radicale.maintain.svg)  
 [![Install Radicale with YunoHost](https://install-app.yunohost.org/install-with-yunohost.png)](https://install-app.yunohost.org/?app=radicale)
 
 *[Lire ce readme en français.](./README_fr.md)*
@@ -36,7 +36,7 @@ InfCloud has its own config file, at /var/www/radicale/infcloud/config.js
 
 ## YunoHost specific features
 
-* This package bring a web interface for radicale named InfCloud.
+* This package bring a web interface for Radicale named InfCloud.
 
 #### Multi-users support
 
@@ -44,13 +44,12 @@ Supported, with LDAP and SSO only with radicale, not for InfCloud.
 
 #### Supported architectures
 
-* x86-64b - [![](https://ci-apps.yunohost.org/ci/logs/radicale%20%28Community%29.svg)](https://ci-apps.yunohost.org/ci/apps/radicale/)
+* x86-64 - [![](https://ci-apps.yunohost.org/ci/logs/radicale%20%28Community%29.svg)](https://ci-apps.yunohost.org/ci/apps/radicale/)
 * ARMv8-A - [![](https://ci-apps-arm.yunohost.org/ci/logs/radicale%20%28Community%29.svg)](https://ci-apps-arm.yunohost.org/ci/apps/radicale/)
-* Jessie x86-64b - [![](https://ci-stretch.nohost.me/ci/logs/radicale%20%28Community%29.svg)](https://ci-stretch.nohost.me/ci/apps/radicale/)
 
 ## Limitations
 
-* The version 1.1.6 is relatively old. There's a version 2 of radicale, but this new version dos not support ldap yet.
+* The version 1.1.6 is relatively old. There's a version 2 of radicale, but this new version dos not support LDAP yet.
 
 ## Additionnal informations
 
@@ -63,8 +62,7 @@ Supported, with LDAP and SSO only with radicale, not for InfCloud.
 
 ---
 
-Developers infos
-----------------
+## Developers infos
 
 Please do your pull request to the [testing branch](https://github.com/YunoHost-Apps/radicale_ynh/tree/testing).
 
