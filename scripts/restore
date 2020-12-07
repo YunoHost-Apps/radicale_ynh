@@ -8,8 +8,6 @@
 
 source ../settings/scripts/_common.sh
 source /usr/share/yunohost/helpers
-# Load common variables for all scripts.
-source ../settings/scripts/_variables
 
 #=================================================
 # MANAGE SCRIPT FAILURE
@@ -30,6 +28,7 @@ domain=$(ynh_app_setting_get $app domain)
 infcloud=$(ynh_app_setting_get $app infcloud)
 path_url=$(ynh_app_setting_get $app path)
 admin=$(ynh_app_setting_get $app admin)
+phpversion=$(ynh_app_setting_get --app=$app --key=phpversion)
 
 #=================================================
 # CHECK IF THE APP CAN BE RESTORED
@@ -62,7 +61,7 @@ ynh_restore_file "/etc/nginx/conf.d/$domain.d/$app.conf"
 #=================================================
 ynh_script_progression --message="Reinstall dependencies" --weight=25
 
-ynh_install_app_dependencies $app_depencencies
+ynh_install_app_dependencies $pkg_dependencies
 
 #=================================================
 # RESTORE THE APP MAIN DIR
@@ -87,9 +86,9 @@ ynh_system_user_create $app
 
 if [ $infcloud -eq 1 ]
 then
-	ynh_script_progression --message="Reload php-fpm" --weight=2
-	ynh_restore_file "/etc/php/7.0/fpm/pool.d/$app.conf"
-	ynh_systemd_action --action=reload --service_name=php7.0-fpm
+	ynh_script_progression --message="Reload PHP-FPM" --weight=2
+	ynh_restore_file "/etc/php/$phpversion/fpm/pool.d/$app.conf"
+	ynh_systemd_action --action=reload --service_name=php$phpversion-fpm
 fi
 
 #=================================================
@@ -113,7 +112,7 @@ ynh_restore_file "/etc/uwsgi/apps-available/radicale.ini"
 ln -s /etc/uwsgi/apps-available/radicale.ini /etc/uwsgi/apps-enabled/
 
 # Advertise service in admin panel
-yunohost service add uwsgi --log "/var/log/uwsgi/app/radicale.log"
+yunohost service add uwsgi --log="/var/log/uwsgi/app/radicale.log"
 
 #=================================================
 # RESTORE THE RADICALE CONFIGURATION

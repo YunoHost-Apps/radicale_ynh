@@ -8,8 +8,6 @@
 
 source _common.sh
 source /usr/share/yunohost/helpers
-# Load common variables for all scripts.
-source _variables
 
 #=================================================
 # MANAGE FAILURE OF THE SCRIPT
@@ -73,7 +71,7 @@ ynh_app_setting_set $app admin_mail_html "1"
 #=================================================
 ynh_script_progression --message="Install dependencies" --weight=25
 
-ynh_install_app_dependencies $app_depencencies
+ynh_install_app_dependencies $pkg_dependencies
 
 #=================================================
 # NGINX CONFIGURATION
@@ -246,7 +244,7 @@ done <<< "$(yunohost user list | grep username | cut -d ":" -f 2 | cut -c 2-)"
 ynh_script_progression --message="Restart Radicale" --weight=2
 
 ynh_systemd_action --action=restart --service_name=uwsgi
-yunohost service add uwsgi --log "/var/log/uwsgi/app/radicale.log"
+yunohost service add uwsgi --log="/var/log/uwsgi/app/radicale.log"
 
 #=================================================
 # PREPARE THE HOOKS
@@ -293,9 +291,10 @@ ynh_use_logrotate
 
 if [ $infcloud -eq 1 ]
 then
-	ynh_script_progression --message="Configure php-fpm" --weight=4
+	ynh_script_progression --message="Configure PHP-FPM" --weight=4
 	# Create a dedicated php-fpm config
 	ynh_add_fpm_config
+	phpversion=$(ynh_app_setting_get --app=$app --key=phpversion)
 fi
 
 #=================================================

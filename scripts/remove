@@ -16,7 +16,7 @@ ynh_script_progression --message="Load settings"
 
 app=$YNH_APP_INSTANCE_NAME
 
-domain=$(ynh_app_setting_get $app domain)
+domain=$(ynh_app_setting_get --app=$app --key=domain)
 
 #=================================================
 # STANDARD REMOVE
@@ -52,15 +52,15 @@ ynh_secure_remove "/opt/yunohost/$app"
 #=================================================
 # REMOVE NGINX CONFIGURATION
 #=================================================
-ynh_script_progression --message="Remove nginx configuration"
+ynh_script_progression --message="Remove NGINX configuration"
 
-# Remove the dedicated nginx config
+# Remove the dedicated NGINX config
 ynh_remove_nginx_config
 
 #=================================================
 # REMOVE PHP-FPM CONFIGURATION
 #=================================================
-ynh_script_progression --message="Remove php-fpm configuration" --weight=3
+ynh_script_progression --message="Remove PHP-FPM configuration" --weight=3
 
 # Remove the dedicated php-fpm config
 ynh_remove_fpm_config

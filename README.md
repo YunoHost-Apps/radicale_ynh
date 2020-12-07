@@ -32,7 +32,7 @@ InfCloud has its own config file, at /var/www/radicale/infcloud/config.js
 ## Documentation
 
  * Official documentation: https://github.com/Kozea/Radicale/blob/website/pages/user_documentation.rst
- * YunoHost documentation: [app_radicale.md](./app_radicale.md)
+ * YunoHost documentation: https://yunohost.org/#/app_radicale
 
 ## YunoHost specific features
 
