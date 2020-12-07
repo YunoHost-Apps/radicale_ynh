@@ -40,9 +40,6 @@ ynh_script_progression --message="Check if the app can be installed"
 final_path=/var/www/$app
 test ! -e "$final_path" || ynh_die "This path already contains a folder"
 
-# Normalize the url path syntax
-path_url=$(ynh_normalize_url_path $path_url)
-
 # Register (book) web path
 ynh_webpath_register $app $domain $path_url
 
@@ -76,12 +73,12 @@ ynh_install_app_dependencies $pkg_dependencies
 #=================================================
 # NGINX CONFIGURATION
 #=================================================
-ynh_script_progression --message="Configure nginx" --weight=2
+ynh_script_progression --message="Configure NGINX" --weight=2
 
 ynh_add_nginx_config
 if [ $infcloud -eq 1 ]
 then
-	# Add InfCloud in Nginx config
+	# Add InfCloud in NGINX config
 	ynh_replace_string "#INFCLOUD#" "" /etc/nginx/conf.d/$domain.d/$app.conf
 fi
 ynh_store_file_checksum "$finalnginxconf"
@@ -99,7 +96,7 @@ ynh_system_user_create $app
 #=================================================
 # INSTALL RADICALE IN A VIRTUALENV
 #=================================================
-ynh_script_progression --message="Install radicale in a virtualenv" --weight=15
+ynh_script_progression --message="Install Radicale in a virtualenv" --weight=15
 
 # Init virtualenv
 virtualenv /opt/yunohost/$app
@@ -300,7 +297,7 @@ fi
 #=================================================
 # RELOAD NGINX
 #=================================================
-ynh_script_progression --message="Reload nginx" --weight=4
+ynh_script_progression --message="Reload NGINX" --weight=4
 
 ynh_systemd_action --action=reload --service_name=nginx
 
