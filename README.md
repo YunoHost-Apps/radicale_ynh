@@ -44,8 +44,8 @@ Supported, with LDAP and SSO only with radicale, not for InfCloud.
 
 #### Supported architectures
 
-* x86-64 - [![](https://ci-apps.yunohost.org/ci/logs/radicale%20%28Community%29.svg)](https://ci-apps.yunohost.org/ci/apps/radicale/)
-* ARMv8-A - [![](https://ci-apps-arm.yunohost.org/ci/logs/radicale%20%28Community%29.svg)](https://ci-apps-arm.yunohost.org/ci/apps/radicale/)
+* x86-64 - [![Build Status](https://ci-apps.yunohost.org/ci/logs/radicale%20%28Apps%29.svg)](https://ci-apps.yunohost.org/ci/apps/radicale/)
+* ARMv8-A - [![Build Status](https://ci-apps-arm.yunohost.org/ci/logs/radicale%20%28Apps%29.svg)](https://ci-apps-arm.yunohost.org/ci/apps/radicale/)
 
 ## Limitations
 
