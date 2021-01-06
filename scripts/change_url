@@ -170,4 +170,4 @@ ynh_maintenance_mode_OFF
 # END OF SCRIPT
 #=================================================
 
-ynh_script_progression --message="Change of url completed" --last
+ynh_script_progression --message="Change of URL completed" --last

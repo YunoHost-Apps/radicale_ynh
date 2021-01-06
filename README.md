@@ -1,7 +1,7 @@
 # Radicale for YunoHost
 
 [![Integration level](https://dash.yunohost.org/integration/radicale.svg)](https://dash.yunohost.org/appci/app/radicale) ![](https://ci-apps.yunohost.org/ci/badges/radicale.status.svg) ![](https://ci-apps.yunohost.org/ci/badges/radicale.maintain.svg)  
-[![Install Radicale with YunoHost](https://install-app.yunohost.org/install-with-yunohost.png)](https://install-app.yunohost.org/?app=radicale)
+[![Install Radicale with YunoHost](https://install-app.yunohost.org/install-with-yunohost.svg)](https://install-app.yunohost.org/?app=radicale)
 
 *[Lire ce readme en français.](./README_fr.md)*
 
@@ -32,7 +32,7 @@ InfCloud has its own config file, at /var/www/radicale/infcloud/config.js
 ## Documentation
 
  * Official documentation: https://github.com/Kozea/Radicale/blob/website/pages/user_documentation.rst
- * YunoHost documentation: [app_radicale.md](./app_radicale.md)
+ * YunoHost documentation: https://yunohost.org/#/app_radicale
 
 ## YunoHost specific features
 
