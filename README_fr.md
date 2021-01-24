@@ -1,7 +1,7 @@
 # Radicale pour YunoHost
 
-[![Niveau d'intégration](https://dash.yunohost.org/integration/radicale.svg)](https://dash.yunohost.org/appci/app/radicale)  
-[![Installer Radicale avec YunoHost](https://install-app.yunohost.org/install-with-yunohost.png)](https://install-app.yunohost.org/?app=radicale)
+[![Niveau d'intégration](https://dash.yunohost.org/integration/radicale.svg)](https://dash.yunohost.org/appci/app/radicale) ![](https://ci-apps.yunohost.org/ci/badges/radicale.status.svg) ![](https://ci-apps.yunohost.org/ci/badges/radicale.maintain.svg)  
+[![Installer Radicale avec YunoHost](https://install-app.yunohost.org/install-with-yunohost.svg)](https://install-app.yunohost.org/?app=radicale)
 
 *[Read this readme in english.](./README.md)*
 
@@ -12,8 +12,8 @@ Si vous n'avez pas YunoHost, merci de regarder [ici](https://yunohost.org/#/inst
 
 Radicale est un petit mais puissant serveur CalDAV (calendriers, listes de tâches) et CardDAV (contacts).
 
-**Version embarquée:** 1.1.6
-**Version embarquée de InfCloud:** 0.13.1
+**Version embarquée :** 1.1.6
+**Version embarquée de InfCloud :** 0.13.1
 
 ## Captures d'écran
 
@@ -31,8 +31,8 @@ InfCloud a son propre fichier de config, à /var/www/radicale/infcloud/config.js
 
 ## Documentation
 
- * Official documentation: https://github.com/Kozea/Radicale/blob/website/pages/user_documentation.rst
- * Documentation YunoHost: [app_radicale_fr.md](./app_radicale_fr.md)
+ * Official documentation : https://github.com/Kozea/Radicale/blob/website/pages/user_documentation.rst
+ * Documentation YunoHost : https://yunohost.org/#/app_radicale_fr
 
 ## Fonctionnalités spécifiques à YunoHost
 
@@ -44,9 +44,8 @@ Supportée, avec LDAP et SSO seulement avec radicale, pas pour InfCloud.
 
 #### Architectures supportées.
 
-* x86-64b - [![](https://ci-apps.yunohost.org/ci/logs/radicale%20%28Community%29.svg)](https://ci-apps.yunohost.org/ci/apps/radicale/)
-* ARMv8-A - [![](https://ci-apps-arm.yunohost.org/ci/logs/radicale%20%28Community%29.svg)](https://ci-apps-arm.yunohost.org/ci/apps/radicale/)
-* Jessie x86-64b - [![](https://ci-stretch.nohost.me/ci/logs/radicale%20%28Community%29.svg)](https://ci-stretch.nohost.me/ci/apps/radicale/)
+* x86-64 - [![Build Status](https://ci-apps.yunohost.org/ci/logs/radicale%20%28Apps%29.svg)](https://ci-apps.yunohost.org/ci/apps/radicale/)
+* ARMv8-A - [![Build Status](https://ci-apps-arm.yunohost.org/ci/logs/radicale%20%28Apps%29.svg)](https://ci-apps-arm.yunohost.org/ci/apps/radicale/)
 
 ## Limitations
 
@@ -56,15 +55,14 @@ Supportée, avec LDAP et SSO seulement avec radicale, pas pour InfCloud.
 
 ## Liens
 
- * Reporter un bug: https://github.com/YunoHost-Apps/radicale_ynh/issues
- * Site de Radicale: http://radicale.org/
- * Site de InfCloud: https://www.inf-it.com/open-source/clients/infcloud/
- * Site de YunoHost: https://yunohost.org/
+ * Reporter un bug : https://github.com/YunoHost-Apps/radicale_ynh/issues
+ * Site de Radicale : http://radicale.org/
+ * Site de InfCloud : https://www.inf-it.com/open-source/clients/infcloud/
+ * Site de YunoHost : https://yunohost.org/
 
 ---
 
-Informations à l'intention des développeurs
-----------------
+## Informations à l'intention des développeurs
 
 Merci de faire vos pull request sur la [branche testing](https://github.com/YunoHost-Apps/radicale_ynh/tree/testing).
 

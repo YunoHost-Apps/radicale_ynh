@@ -8,8 +8,6 @@
 
 source _common.sh
 source /usr/share/yunohost/helpers
-# Load common variables for all scripts.
-source _variables
 
 #=================================================
 # LOAD SETTINGS
@@ -18,26 +16,26 @@ ynh_script_progression --message="Load settings" --weight=6
 
 app=$YNH_APP_INSTANCE_NAME
 
-domain=$(ynh_app_setting_get $app domain)
-path_url=$(ynh_app_setting_get $app path)
-admin=$(ynh_app_setting_get $app admin)
-infcloud=$(ynh_app_setting_get $app infcloud)
-language=$(ynh_app_setting_get $app language)
-final_path=$(ynh_app_setting_get $app final_path)
-version=$(ynh_app_setting_get $app version)
-overwrite_logging=$(ynh_app_setting_get $app overwrite_logging)
-overwrite_config=$(ynh_app_setting_get $app overwrite_config)
-overwrite_infcloud=$(ynh_app_setting_get $app overwrite_infcloud)
-overwrite_nginx=$(ynh_app_setting_get $app overwrite_nginx)
-overwrite_phpfpm=$(ynh_app_setting_get $app overwrite_phpfpm)
+domain=$(ynh_app_setting_get --app=$app --key=domain)
+path_url=$(ynh_app_setting_get --app=$app --key=path)
+admin=$(ynh_app_setting_get --app=$app --key=admin)
+infcloud=$(ynh_app_setting_get --app=$app --key=infcloud)
+language=$(ynh_app_setting_get --app=$app --key=language)
+final_path=$(ynh_app_setting_get --app=$app --key=final_path)
+version=$(ynh_app_setting_get --app=$app --key=version)
+overwrite_logging=$(ynh_app_setting_get --app=$app --key=overwrite_logging)
+overwrite_config=$(ynh_app_setting_get --app=$app --key=overwrite_config)
+overwrite_infcloud=$(ynh_app_setting_get --app=$app --key=overwrite_infcloud)
+overwrite_nginx=$(ynh_app_setting_get --app=$app --key=overwrite_nginx)
+overwrite_phpfpm=$(ynh_app_setting_get --app=$app --key=overwrite_phpfpm)
 
 # Optional parameters from config-panel feature
-firstdayofweek=$(ynh_app_setting_get $app firstdayofweek)
-activeview=$(ynh_app_setting_get $app activeview)
-openformmode=$(ynh_app_setting_get $app openformmode)
-startofbusiness=$(ynh_app_setting_get $app startofbusiness)
-endofbusiness=$(ynh_app_setting_get $app endofbusiness)
-defaulteventduration=$(ynh_app_setting_get $app defaulteventduration)
+firstdayofweek=$(ynh_app_setting_get --app=$app --key=firstdayofweek)
+activeview=$(ynh_app_setting_get --app=$app --key=activeview)
+openformmode=$(ynh_app_setting_get --app=$app --key=openformmode)
+startofbusiness=$(ynh_app_setting_get --app=$app --key=startofbusiness)
+endofbusiness=$(ynh_app_setting_get --app=$app --key=endofbusiness)
+defaulteventduration=$(ynh_app_setting_get --app=$app --key=defaulteventduration)
 
 #=================================================
 # CHECK VERSION
@@ -126,8 +124,6 @@ if [ $infcloud -eq 1 ]; then
 	# Remove /infcloud to deal with the path only.
 	path_url=$(echo $path_url | sed "s@/infcloud@@")
 fi
-# Normalize the URL path syntax
-path_url=$(ynh_normalize_url_path $path_url)
 
 #=================================================
 # ACTIVATE MAINTENANCE MODE
@@ -143,20 +139,20 @@ ynh_maintenance_mode_ON
 #=================================================
 ynh_script_progression --message="Upgrade dependencies"
 
-ynh_install_app_dependencies $app_depencencies
+ynh_install_app_dependencies $pkg_dependencies
 
 #=================================================
 # NGINX CONFIGURATION
 #=================================================
 
-# Overwrite the nginx configuration only if it's allowed
+# Overwrite the NGINX configuration only if it's allowed
 if [ $overwrite_nginx -eq 1 ]
 then
 	ynh_script_progression --message="Reconfigure nginx" --weight=2
 	ynh_add_nginx_config
 	if [ $infcloud -eq 1 ]
 	then
-		# Add InfCloud in Nginx config
+		# Add InfCloud in NGINX config
 		ynh_replace_string "#INFCLOUD#" "" /etc/nginx/conf.d/$domain.d/$app.conf
 	fi
 	ynh_store_file_checksum "$finalnginxconf"
@@ -179,7 +175,7 @@ then
 	# Overwrite the php-fpm configuration only if it's allowed
 	if [ $overwrite_phpfpm -eq 1 ]
 	then
-		ynh_script_progression --message="Reconfigure php-fpm" --weight=2
+		ynh_script_progression --message="Reconfigure PHP-FPM" --weight=2
 		# Create a dedicated php-fpm config
 		ynh_add_fpm_config
 	fi
@@ -362,11 +358,12 @@ chmod 777 $final_path/default_collections $final_path/default_collections/USER
 cp ../conf/radicale.ini /etc/uwsgi/apps-available/
 
 #=================================================
-# RESTART UWSGI
+# ADVERTISE SERVICE IN ADMIN PANEL
 #=================================================
-ynh_script_progression --message="Restart Radicale" --weight=3
+ynh_script_progression --message="Restart Radicale" --weight=2
 
 ynh_systemd_action --action=restart --service_name=uwsgi
+yunohost service add uwsgi --log="/var/log/uwsgi/app/radicale.log"
 
 #=================================================
 # PREPARE THE HOOKS
@@ -409,7 +406,7 @@ fi
 #=================================================
 # RELOAD NGINX
 #=================================================
-ynh_script_progression --message="Reload nginx"
+ynh_script_progression --message="Reload NGINX"
 
 ynh_systemd_action --action=reload --service_name=nginx
 

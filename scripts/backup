@@ -19,41 +19,41 @@ ynh_abort_if_errors
 #=================================================
 # LOAD SETTINGS
 #=================================================
-ynh_script_progression --message="Load settings" --weight=2
+ynh_print_info --message="Loading installation settings..."
 
 app=$YNH_APP_INSTANCE_NAME
 
 final_path=$(ynh_app_setting_get $app final_path)
 domain=$(ynh_app_setting_get $app domain)
 infcloud=$(ynh_app_setting_get $app infcloud)
+phpversion=$(ynh_app_setting_get --app=$app --key=phpversion)
 
 #=================================================
-# STANDARD BACKUP STEPS
+# DECLARE DATA AND CONF FILES TO BACKUP
+#=================================================
+ynh_print_info --message="Declaring files to be backed up..."
+
 #=================================================
 # BACKUP THE APP MAIN DIR
 #=================================================
-ynh_script_progression --message="Backup the app main dir" --weight=2
 
-CHECK_SIZE "$final_path"
 ynh_backup "$final_path"
-CHECK_SIZE "/opt/yunohost/$app"
+
 ynh_backup "/opt/yunohost/$app"
 
 #=================================================
 # BACKUP NGINX CONFIGURATION
 #=================================================
-ynh_script_progression --message="Backup nginx configuration"
 
 ynh_backup "/etc/nginx/conf.d/$domain.d/$app.conf"
 
 #=================================================
 # BACKUP PHP-FPM CONFIGURATION
 #=================================================
-ynh_script_progression --message="Backup php-fpm configuration"
 
 if [ $infcloud -eq 1 ]
 then
-	ynh_backup "/etc/php/7.0/fpm/pool.d/$app.conf"
+	ynh_backup "/etc/php/$phpversion/fpm/pool.d/$app.conf"
 fi
 
 #=================================================
@@ -61,22 +61,18 @@ fi
 #=================================================
 # BACKUP UWSGI CONFIG
 #=================================================
-ynh_script_progression --message="Backup uWSGI configuration"
 
 ynh_backup "/etc/uwsgi/apps-available/radicale.ini"
 
 #=================================================
 # BACKUP RADICALE CONFIGURATION
 #=================================================
-ynh_script_progression --message="Backup Radicale configuration"
 
-CHECK_SIZE "/etc/$app"
 ynh_backup "/etc/$app"
 
 #=================================================
 # BACKUP LOGROTATE CONFIGURATION
 #=================================================
-ynh_script_progression --message="Backup logrotate configuration"
 
 ynh_backup "/etc/logrotate.d/$app"
 
@@ -84,4 +80,4 @@ ynh_backup "/etc/logrotate.d/$app"
 # END OF SCRIPT
 #=================================================
 
-ynh_script_progression --message="Backup script completed. Please wait for YunoHost to create the backup." --last
+ynh_print_info --message="Backup script completed. Please wait for YunoHost to create the backup."

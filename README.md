@@ -1,7 +1,7 @@
 # Radicale for YunoHost
 
 [![Integration level](https://dash.yunohost.org/integration/radicale.svg)](https://dash.yunohost.org/appci/app/radicale) ![](https://ci-apps.yunohost.org/ci/badges/radicale.status.svg) ![](https://ci-apps.yunohost.org/ci/badges/radicale.maintain.svg)  
-[![Install Radicale with YunoHost](https://install-app.yunohost.org/install-with-yunohost.png)](https://install-app.yunohost.org/?app=radicale)
+[![Install Radicale with YunoHost](https://install-app.yunohost.org/install-with-yunohost.svg)](https://install-app.yunohost.org/?app=radicale)
 
 *[Lire ce readme en français.](./README_fr.md)*
 
@@ -32,7 +32,7 @@ InfCloud has its own config file, at /var/www/radicale/infcloud/config.js
 ## Documentation
 
  * Official documentation: https://github.com/Kozea/Radicale/blob/website/pages/user_documentation.rst
- * YunoHost documentation: [app_radicale.md](./app_radicale.md)
+ * YunoHost documentation: https://yunohost.org/#/app_radicale
 
 ## YunoHost specific features
 
@@ -44,8 +44,8 @@ Supported, with LDAP and SSO only with radicale, not for InfCloud.
 
 #### Supported architectures
 
-* x86-64 - [![](https://ci-apps.yunohost.org/ci/logs/radicale%20%28Community%29.svg)](https://ci-apps.yunohost.org/ci/apps/radicale/)
-* ARMv8-A - [![](https://ci-apps-arm.yunohost.org/ci/logs/radicale%20%28Community%29.svg)](https://ci-apps-arm.yunohost.org/ci/apps/radicale/)
+* x86-64 - [![Build Status](https://ci-apps.yunohost.org/ci/logs/radicale%20%28Apps%29.svg)](https://ci-apps.yunohost.org/ci/apps/radicale/)
+* ARMv8-A - [![Build Status](https://ci-apps-arm.yunohost.org/ci/logs/radicale%20%28Apps%29.svg)](https://ci-apps-arm.yunohost.org/ci/apps/radicale/)
 
 ## Limitations
 
