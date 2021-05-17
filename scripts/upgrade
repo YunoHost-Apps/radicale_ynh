@@ -159,13 +159,14 @@ ynh_install_app_dependencies $pkg_dependencies
 if [ $overwrite_nginx -eq 1 ]
 then
 	ynh_script_progression --message="Reconfigure nginx" --weight=2
-	ynh_add_nginx_config
 	if [ $infcloud -eq 1 ]
 	then
 		# Add InfCloud in NGINX config
-		ynh_replace_string "#INFCLOUD#" "" /etc/nginx/conf.d/$domain.d/$app.conf
+		$inf_cloud=""
+	else
+		$inf_cloud="#INFCLOUD#"
 	fi
-	ynh_store_file_checksum "$finalnginxconf"
+	ynh_add_nginx_config
 fi
 
 #=================================================
