@@ -162,9 +162,9 @@ then
 	if [ $infcloud -eq 1 ]
 	then
 		# Add InfCloud in NGINX config
-		$inf_cloud=""
+		inf_cloud=""
 	else
-		$inf_cloud="#INFCLOUD#"
+		inf_cloud="#INFCLOUD#"
 	fi
 	ynh_add_nginx_config
 fi
