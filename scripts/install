@@ -264,14 +264,14 @@ then
 	# Replace radicale by InfCloud into YunoHost portal
 	ynh_app_setting_set $app path ${path_url%/}/infcloud
 	# Protect InfCloud access
-
-
+	ynh_app_setting_set $app protected_uris "/"
+	domain_regex=$(echo "$domain" | sed 's@-@.@g')
 	# Radicale is always accessible (For access to ressources)
-
+	ynh_app_setting_set $app skipped_regex "$domain_regex$path_url"
 else
 	# If only radicale is installed
 	# Radicale is always accessible (For access to ressources)
-
+	ynh_app_setting_set $app unprotected_uris "/"
 fi
 
 #=================================================
