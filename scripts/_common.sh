@@ -184,30 +184,6 @@ __PRE_TAG1__$(yunohost tools diagnosis | grep -B 100 "services:" | sed '/service
 
 #=================================================
 
-ynh_debian_release () {
-	lsb_release --codename --short
-}
-
-is_stretch () {
-	if [ "$(ynh_debian_release)" == "stretch" ]
-	then
-		return 0
-	else
-		return 1
-	fi
-}
-
-is_jessie () {
-	if [ "$(ynh_debian_release)" == "jessie" ]
-	then
-		return 0
-	else
-		return 1
-	fi
-}
-
-#=================================================
-
 ynh_maintenance_mode_ON () {
 	# Load value of $path_url and $domain from the config if their not set
 	if [ -z $path_url ]; then
