@@ -18,7 +18,7 @@
 		"email": "maniackc_dev@crudelis.fr"
 	}],
 	"requirements": {
-		"yunohost": ">= 3.8.1"
+		"yunohost": ">= 4.3.0"
 	},
 	"multi_instance": false,
 	"services": [
@@ -29,31 +29,17 @@
 		"install" : [
 			{
 				"name": "domain",
-				"type": "domain",
-				"ask": {
-					"en": "Choose a domain for Radicale",
-					"fr": "Choisissez un domaine pour Radicale"
-				},
-				"example": "domain.org"
+				"type": "domain"
 			},
 			{
 				"name": "path",
 				"type": "path",
-				"ask": {
-					"en": "Choose a path for Radicale",
-					"fr": "Choisissez un chemin pour Radicale"
-				},
 				"example": "/radicale",
 				"default": "/radicale"
 			},
 			{
 				"name": "admin",
-				"type": "user",
-				"ask": {
-					"en": "Choose the administrator (must be an existing YunoHost user)",
-					"fr": "Choisissez un administrateur (doit être un utilisateur YunoHost)"
-				},
-				"example": "john"
+				"type": "user"
 			},
 			{
 				"name": "infcloud",

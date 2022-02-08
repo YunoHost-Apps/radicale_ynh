@@ -44,6 +44,20 @@ defaulteventduration=$(ynh_app_setting_get --app=$app --key=defaulteventduration
 upgrade_type=$(ynh_check_app_version_changed)
 
 #=================================================
+# BACKUP BEFORE UPGRADE THEN ACTIVE TRAP
+#=================================================
+ynh_script_progression --message="Backup the app before upgrading"
+
+# Backup the current version of the app
+ynh_backup_before_upgrade
+ynh_clean_setup () {
+	# restore it if the upgrade fails
+	ynh_restore_upgradebackup
+}
+# Exit if an error occurs during the execution of the script
+ynh_abort_if_errors
+
+#=================================================
 # ENSURE DOWNWARD COMPATIBILITY
 #=================================================
 ynh_script_progression --message="Ensure downward compatibility"
@@ -103,18 +117,14 @@ if [ -z "$overwrite_phpfpm" ]; then
 fi
 
 #=================================================
-# BACKUP BEFORE UPGRADE THEN ACTIVE TRAP
+# Migrate legacy permissions to new system
 #=================================================
-ynh_script_progression --message="Backup the app before upgrading" --weight=9
+if ynh_legacy_permissions_exists
+then
+	ynh_legacy_permissions_delete_all
 
-# Backup the current version of the app
-ynh_backup_before_upgrade
-ynh_clean_setup () {
-	# restore it if the upgrade fails
-	ynh_restore_upgradebackup
-}
-# Exit if an error occurs during the execution of the script
-ynh_abort_if_errors
+	ynh_app_setting_delete --app=$app --key=is_public
+fi
 
 #=================================================
 # CHECK THE PATH
@@ -128,7 +138,7 @@ fi
 #=================================================
 # ACTIVATE MAINTENANCE MODE
 #=================================================
-ynh_script_progression --message="Activate maintenance mode"
+ynh_script_progression --message="Activate maintenance mode" --weight=1
 
 ynh_maintenance_mode_ON
 
@@ -137,7 +147,7 @@ ynh_maintenance_mode_ON
 #=================================================
 # UPGRADE DEPENDENCIES
 #=================================================
-ynh_script_progression --message="Upgrade dependencies"
+ynh_script_progression --message="Upgrade dependencies" --weight=5
 
 ynh_install_app_dependencies $pkg_dependencies
 
@@ -155,13 +165,13 @@ then
 		# Add InfCloud in NGINX config
 		ynh_replace_string "#INFCLOUD#" "" /etc/nginx/conf.d/$domain.d/$app.conf
 	fi
-	ynh_store_file_checksum "$finalnginxconf"
+	ynh_store_file_checksum "/etc/nginx/conf.d/$domain.d/$app.conf"
 fi
 
 #=================================================
 # CREATE DEDICATED USER
 #=================================================
-ynh_script_progression --message="Create a dedicated user"
+ynh_script_progression --message="Create a dedicated user" --weight=2
 
 # Create a dedicated user (if not existing)
 ynh_system_user_create $app
