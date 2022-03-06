@@ -9,15 +9,7 @@ YNH_PHP_VERSION="7.3"
 pkg_dependencies="python-pip python-virtualenv virtualenv python-dev libldap2-dev libsasl2-dev libssl-dev uwsgi uwsgi-plugin-python"
 
 #=================================================
-# PACKAGE CHECK BYPASSING...
-#=================================================
-
-IS_PACKAGE_CHECK () {
-	return $(env | grep -c container=lxc)
-}
-
-#=================================================
-# BOOLEAN CONVERTER
+# PERSONAL HELPERS
 #=================================================
 
 bool_to_01 () {
@@ -33,11 +25,6 @@ bool_to_true_false () {
 	[ "$var" = "0" ] && var=false
 	echo "$var"
 }
-
-#=================================================
-# FUTUR OFFICIAL HELPERS
-#=================================================
-
 
 #=================================================
 # EXPERIMENTAL HELPERS
@@ -388,3 +375,7 @@ ynh_app_changelog () {
 		sed -in-place "s@\*(\([[:alnum:]]*\)) -> \(.*\)@* __URL_TAG1__\2__URL_TAG2__${repo}/commit/\1__URL_TAG3__@g" changelog
  	fi
 }
+
+#=================================================
+# FUTURE OFFICIAL HELPERS
+#=================================================

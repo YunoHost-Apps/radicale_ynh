@@ -12,7 +12,6 @@ source /usr/share/yunohost/helpers
 #=================================================
 # RETRIEVE ARGUMENTS
 #=================================================
-ynh_script_progression --message="Retrieve arguments from the manifest"
 
 old_domain=$YNH_APP_OLD_DOMAIN
 old_path=$YNH_APP_OLD_PATH
@@ -25,10 +24,38 @@ app=$YNH_APP_INSTANCE_NAME
 #=================================================
 # LOAD SETTINGS
 #=================================================
-ynh_script_progression --message="Load settings" --weight=2
+ynh_script_progression --message="Loading installation settings..." --weight=2
 
-infcloud=$(ynh_app_setting_get $app infcloud)
-final_path=$(ynh_app_setting_get $app final_path)
+# Needed for helper "ynh_add_nginx_config"
+final_path=$(ynh_app_setting_get --app=$app --key=final_path)
+infcloud=$(ynh_app_setting_get --app=$app --key=infcloud)
+
+#=================================================
+# BACKUP BEFORE CHANGE URL THEN ACTIVE TRAP
+#=================================================
+ynh_script_progression --message="Backing up the app before changing its URL (may take a while)..."
+
+# Backup the current version of the app
+ynh_backup_before_upgrade
+ynh_clean_setup () {
+	ynh_clean_check_starting
+	# Remove the new domain config file, the remove script won't do it as it doesn't know yet its location.
+	ynh_secure_remove --file="/etc/nginx/conf.d/$new_domain.d/$app.conf"
+
+	# Restore it if the upgrade fails
+	ynh_restore_upgradebackup
+}
+# Exit if an error occurs during the execution of the script
+ynh_abort_if_errors
+
+#=================================================
+# ACTIVATE MAINTENANCE MODE
+#=================================================
+ynh_script_progression --message="Activate maintenance mode"
+
+path_url=$old_path
+domain=$old_domain
+ynh_maintenance_mode_ON
 
 #=================================================
 # CHECK THE SYNTAX OF THE PATHS
@@ -47,15 +74,6 @@ new_path=$(ynh_normalize_url_path $new_path)
 old_path=$(ynh_normalize_url_path $old_path)
 
 #=================================================
-# ACTIVATE MAINTENANCE MODE
-#=================================================
-ynh_script_progression --message="Activate maintenance mode"
-
-path_url=$old_path
-domain=$old_domain
-ynh_maintenance_mode_ON
-
-#=================================================
 # CHECK WHICH PARTS SHOULD BE CHANGED
 #=================================================
 
@@ -72,47 +90,34 @@ then
 fi
 
 #=================================================
-# MANAGE FAILURE OF THE SCRIPT
-#=================================================
-
-# Exit if an error occurs during the execution of the script
-ynh_abort_if_errors
-
-#=================================================
 # STANDARD MODIFICATIONS
 #=================================================
 # MODIFY URL IN NGINX CONF
 #=================================================
-ynh_script_progression --message="Modify url in nginx configuration" --weight=2
+ynh_script_progression --message="Updating NGINX web server configuration..." --weight=2
 
 nginx_conf_path=/etc/nginx/conf.d/$old_domain.d/$app.conf
 
-# Change the path in the nginx config file
+# Change the path in the NGINX config file
 if [ $change_path -eq 1 ]
 then
-	# Make a backup of the original nginx config file if modified
-	ynh_backup_if_checksum_is_different "$nginx_conf_path"
-
-	# Set global variables for nginx helper
+	# Make a backup of the original NGINX config file if modified
+	ynh_backup_if_checksum_is_different --file="$nginx_conf_path"
+	# Set global variables for NGINX helper
 	domain="$old_domain"
 	path_url="$new_path"
-
-	# Store path_url setting
-	ynh_app_setting_set $app path_url "$path_url"
-
-	# Create a dedicated nginx config
+	# Create a dedicated NGINX config
 	ynh_add_nginx_config
 fi
 
-# Change the domain for nginx
+# Change the domain for NGINX
 if [ $change_domain -eq 1 ]
 then
 	# Delete file checksum for the old conf file location
-	ynh_delete_file_checksum "$nginx_conf_path"
+	ynh_delete_file_checksum --file="$nginx_conf_path"
 	mv $nginx_conf_path /etc/nginx/conf.d/$new_domain.d/$app.conf
-
 	# Store file checksum for the new config file location
-	ynh_store_file_checksum "/etc/nginx/conf.d/$new_domain.d/$app.conf"
+	ynh_store_file_checksum --file="/etc/nginx/conf.d/$new_domain.d/$app.conf"
 fi
 
 #=================================================
@@ -142,6 +147,8 @@ then
 fi
 
 #=================================================
+# GENERIC FINALISATION
+#=================================================
 # RESTART UWSGI
 #=================================================
 ynh_script_progression --message="Restart Radicale" --weight=2
@@ -149,13 +156,11 @@ ynh_script_progression --message="Restart Radicale" --weight=2
 ynh_systemd_action --action=restart --service_name=uwsgi
 
 #=================================================
-# GENERIC FINALISATION
-#=================================================
 # RELOAD NGINX
 #=================================================
-ynh_script_progression --message="Reload nginx"
+ynh_script_progression --message="Reloading NGINX web server..."
 
-ynh_systemd_action --action=reload --service_name=nginx
+ynh_systemd_action --service_name=nginx --action=reload
 
 #=================================================
 # DEACTIVE MAINTENANCE MODE
@@ -170,4 +175,4 @@ ynh_maintenance_mode_OFF
 # END OF SCRIPT
 #=================================================
 
-ynh_script_progression --message="Change of URL completed" --last
+ynh_script_progression --message="Change of URL completed for $app" --last

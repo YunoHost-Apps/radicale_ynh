@@ -8,6 +8,11 @@
 	},
 	"version": "1.1.6~ynh5",
 	"url": "http://radicale.org",
+    "upstream": {
+        "license": "GPL-3.0,AGPL-3.0",
+        "website": "http://radicale.org",
+        "admindoc": "https://github.com/Kozea/Radicale/blob/website/pages/user_documentation.rst"
+    },
 	"license": "GPL-3.0,AGPL-3.0",
 	"maintainer": {
 		"name": "",
@@ -38,10 +43,6 @@
 				"default": "/radicale"
 			},
 			{
-				"name": "admin",
-				"type": "user"
-			},
-			{
 				"name": "infcloud",
 				"type": "boolean",
 				"ask": {
@@ -54,11 +55,15 @@
 				"name": "language",
 				"type": "string",
 				"ask": {
-					"en": "Choose your interface language",
-					"fr": "Choisissez la langue de l'interface"
+                    "en": "Choose the application language",
+                    "fr": "Choisissez la langue de l'application"
 				},
 				"choices" : ["Czech", "Danish", "German", "English/US", "Spanish", "French", "Italian", "Japan", "Hungarian", "Dutch", "Slovak", "Turkish", "Russian", "Ukrainian", "Chinese"],
 				"default" : "English/US"
+			},
+			{
+				"name": "admin",
+				"type": "user"
 			}
 		]
 	}

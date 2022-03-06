@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #=================================================
-# GENERIC STARTING
+# GENERIC START
 #=================================================
 # IMPORT GENERIC HELPERS
 #=================================================
@@ -10,10 +10,12 @@ source _common.sh
 source /usr/share/yunohost/helpers
 
 #=================================================
-# MANAGE FAILURE OF THE SCRIPT
+# MANAGE SCRIPT FAILURE
 #=================================================
 
-# Exit if an error occurs during the execution of the script
+ynh_clean_setup () {
+	ynh_clean_check_starting
+}# Exit if an error occurs during the execution of the script
 ynh_abort_if_errors
 
 #=================================================
@@ -23,9 +25,9 @@ ynh_script_progression --message="Retrieve arguments from the manifest"
 
 domain=$YNH_APP_ARG_DOMAIN
 path_url=$YNH_APP_ARG_PATH
-admin=$YNH_APP_ARG_ADMIN
 infcloud=$YNH_APP_ARG_INFCLOUD
 language=$YNH_APP_ARG_LANGUAGE
+admin=$YNH_APP_ARG_ADMIN
 
 app=$YNH_APP_INSTANCE_NAME
 
@@ -33,47 +35,56 @@ app=$YNH_APP_INSTANCE_NAME
 version=$(ynh_app_upstream_version)
 
 #=================================================
-# CHECK IF THE APP CAN BE INSTALLED WITH THIS ARGS
+# CHECK IF THE APP CAN BE INSTALLED WITH THESE ARGS
 #=================================================
-ynh_script_progression --message="Check if the app can be installed"
+ynh_script_progression --message="Validating installation parameters..."
 
 final_path=/var/www/$app
-test ! -e "$final_path" || ynh_die "This path already contains a folder"
+test ! -e "$final_path" || ynh_die --message="This path already contains a folder"
 
 # Register (book) web path
-ynh_webpath_register $app $domain $path_url
+ynh_webpath_register --app=$app --domain=$domain --path_url=$path_url
 
 #=================================================
 # STORE SETTINGS FROM MANIFEST
 #=================================================
 ynh_script_progression --message="Store settings from manifest" --weight=4
 
-ynh_app_setting_set $app domain $domain
-ynh_app_setting_set $app path $path_url
-ynh_app_setting_set $app admin $admin
-ynh_app_setting_set $app infcloud $infcloud
-ynh_app_setting_set $app version $version
+ynh_app_setting_set --app=$app --key=domain --value=$domain
+ynh_app_setting_set --app=$app --key=path --value=$path_url
+ynh_app_setting_set --app=$app --key=language --value=$language
+ynh_app_setting_set --app=$app --key=admin --value=$admin
+ynh_app_setting_set --app=$app --key=infcloud --value=$infcloud
+ynh_app_setting_set --app=$app --key=version --value=$version
 
-ynh_app_setting_set $app overwrite_logging "1"
-ynh_app_setting_set $app overwrite_config "1"
-ynh_app_setting_set $app overwrite_infcloud "1"
-ynh_app_setting_set $app overwrite_nginx "1"
-ynh_app_setting_set $app overwrite_phpfpm "1"
-ynh_app_setting_set $app admin_mail_html "1"
+ynh_app_setting_set --app=$app --key=overwrite_logging --value="1"
+ynh_app_setting_set --app=$app --key=overwrite_config --value="1"
+ynh_app_setting_set --app=$app --key=overwrite_infcloud --value="1"
+ynh_app_setting_set --app=$app --key=overwrite_nginx --value="1"
+ynh_app_setting_set --app=$app --key=overwrite_phpfpm --value="1"
+ynh_app_setting_set --app=$app --key=admin_mail_html --value="1"
 
 #=================================================
 # STANDARD MODIFICATIONS
 #=================================================
 # INSTALL DEPENDENCIES
 #=================================================
-ynh_script_progression --message="Install dependencies" --weight=25
+ynh_script_progression --message="Installing dependencies..." --weight=25
 
 ynh_install_app_dependencies $pkg_dependencies
 
 #=================================================
+# CREATE DEDICATED USER
+#=================================================
+ynh_script_progression --message="Configuring system user..." --weight=2
+
+# Create a system user
+ynh_system_user_create --username=$app --home_dir="$final_path"
+
+#=================================================
 # NGINX CONFIGURATION
 #=================================================
-ynh_script_progression --message="Configure NGINX" --weight=2
+ynh_script_progression --message="Configuring NGINX web server..." --weight=2
 
 ynh_add_nginx_config
 if [ $infcloud -eq 1 ]
@@ -84,13 +95,19 @@ fi
 ynh_store_file_checksum "/etc/nginx/conf.d/$domain.d/$app.conf"
 
 #=================================================
-# CREATE DEDICATED USER
+# PHP-FPM CONFIGURATION
 #=================================================
-ynh_script_progression --message="Create a dedicated user" --weight=2
 
-# Create a dedicated system user
-ynh_system_user_create $app
+if [ $infcloud -eq 1 ]
+then
+	ynh_script_progression --message="Configure PHP-FPM" --weight=4
+	# Create a dedicated php-fpm config
+	ynh_add_fpm_config
+	phpversion=$(ynh_app_setting_get --app=$app --key=phpversion)
+fi
 
+#=================================================
+# SPECIFIC SETUP
 #=================================================
 # SPECIFIC SETUP
 #=================================================
@@ -236,14 +253,6 @@ do
 done <<< "$(yunohost user list | grep username | cut -d ":" -f 2 | cut -c 2-)"
 
 #=================================================
-# ADVERTISE SERVICE IN ADMIN PANEL
-#=================================================
-ynh_script_progression --message="Restart Radicale" --weight=2
-
-ynh_systemd_action --action=restart --service_name=uwsgi
-yunohost service add uwsgi --log="/var/log/uwsgi/app/radicale.log"
-
-#=================================================
 # PREPARE THE HOOKS
 #=================================================
 
@@ -252,11 +261,34 @@ ynh_replace_string "__FINALPATH__" "$final_path" ../hooks/post_user_create
 ynh_replace_string "__FINALPATH__" "$final_path" ../hooks/post_user_delete
 
 #=================================================
-# GENERIC FINALISATION
+# GENERIC FINALIZATION
+#=================================================
+# SETUP LOGROTATE
+#=================================================
+ynh_script_progression --message="Configuring log rotation..." --weight=2
+
+# Use logrotate to manage application logfile(s)
+ynh_use_logrotate
+
+#=================================================
+# INTEGRATE SERVICE IN YUNOHOST
+#=================================================
+ynh_script_progression --message="Integrating service in YunoHost..." --weight=2
+
+yunohost service add uwsgi --log="/var/log/uwsgi/app/radicale.log"
+
+#=================================================
+# START SYSTEMD SERVICE
+#=================================================
+ynh_script_progression --message="Starting a systemd service..."
+
+# Start a systemd service
+ynh_systemd_action --action=restart --service_name=uwsgi
+
 #=================================================
 # SETUP SSOWAT
 #=================================================
-ynh_script_progression --message="Setup SSOwat" --weight=3
+ynh_script_progression --message="Configuring permissions..." --weight=3
 
 if [ $infcloud -eq 1 ]
 then
@@ -275,31 +307,11 @@ else
 fi
 
 #=================================================
-# SETUP LOGROTATE
-#=================================================
-ynh_script_progression --message="Configure logrotate" --weight=2
-
-# Use logrotate to manage application logfile(s)
-ynh_use_logrotate
-
-#=================================================
-# PHP-FPM CONFIGURATION
-#=================================================
-
-if [ $infcloud -eq 1 ]
-then
-	ynh_script_progression --message="Configure PHP-FPM" --weight=4
-	# Create a dedicated php-fpm config
-	ynh_add_fpm_config
-	phpversion=$(ynh_app_setting_get --app=$app --key=phpversion)
-fi
-
-#=================================================
 # RELOAD NGINX
 #=================================================
-ynh_script_progression --message="Reload NGINX" --weight=4
+ynh_script_progression --message="Reloading NGINX web server..." --weight=4
 
-ynh_systemd_action --action=reload --service_name=nginx
+ynh_systemd_action --service_name=nginx --action=reload
 
 #=================================================
 # SEND A README FOR THE ADMIN

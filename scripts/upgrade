@@ -18,9 +18,9 @@ app=$YNH_APP_INSTANCE_NAME
 
 domain=$(ynh_app_setting_get --app=$app --key=domain)
 path_url=$(ynh_app_setting_get --app=$app --key=path)
+language=$(ynh_app_setting_get --app=$app --key=language)
 admin=$(ynh_app_setting_get --app=$app --key=admin)
 infcloud=$(ynh_app_setting_get --app=$app --key=infcloud)
-language=$(ynh_app_setting_get --app=$app --key=language)
 final_path=$(ynh_app_setting_get --app=$app --key=final_path)
 version=$(ynh_app_setting_get --app=$app --key=version)
 overwrite_logging=$(ynh_app_setting_get --app=$app --key=overwrite_logging)
@@ -40,27 +40,38 @@ defaulteventduration=$(ynh_app_setting_get --app=$app --key=defaulteventduration
 #=================================================
 # CHECK VERSION
 #=================================================
+ynh_script_progression --message="Checking version..."
 
 upgrade_type=$(ynh_check_app_version_changed)
 
 #=================================================
 # BACKUP BEFORE UPGRADE THEN ACTIVE TRAP
 #=================================================
-ynh_script_progression --message="Backup the app before upgrading"
+ynh_script_progression --message="Backing up the app before upgrading (may take a while)..."
 
 # Backup the current version of the app
 ynh_backup_before_upgrade
 ynh_clean_setup () {
-	# restore it if the upgrade fails
+	ynh_clean_check_starting
+	# Restore it if the upgrade fails
 	ynh_restore_upgradebackup
 }
 # Exit if an error occurs during the execution of the script
 ynh_abort_if_errors
 
 #=================================================
+# ACTIVATE MAINTENANCE MODE
+#=================================================
+ynh_script_progression --message="Activate maintenance mode" --weight=1
+
+ynh_maintenance_mode_ON
+
+#=================================================
+# STANDARD UPGRADE STEPS
+#=================================================
 # ENSURE DOWNWARD COMPATIBILITY
 #=================================================
-ynh_script_progression --message="Ensure downward compatibility"
+ynh_script_progression --message="Ensuring downward compatibility..."
 
 ynh_app_setting_delete $app unprotected_regex
 
@@ -116,40 +127,41 @@ if [ -z "$overwrite_phpfpm" ]; then
 	ynh_app_setting_set $app overwrite_phpfpm $overwrite_phpfpm
 fi
 
-#=================================================
-# Migrate legacy permissions to new system
-#=================================================
-if ynh_legacy_permissions_exists
-then
-	ynh_legacy_permissions_delete_all
-
-	ynh_app_setting_delete --app=$app --key=is_public
-fi
-
-#=================================================
-# CHECK THE PATH
-#=================================================
-
 if [ $infcloud -eq 1 ]; then
 	# Remove /infcloud to deal with the path only.
 	path_url=$(echo $path_url | sed "s@/infcloud@@")
 fi
 
-#=================================================
-# ACTIVATE MAINTENANCE MODE
-#=================================================
-ynh_script_progression --message="Activate maintenance mode" --weight=1
+# Cleaning legacy permissions
+if ynh_legacy_permissions_exists; then
+	ynh_legacy_permissions_delete_all
 
-ynh_maintenance_mode_ON
+	ynh_app_setting_delete --app=$app --key=is_public
+fi
+
+if [ $infcloud -eq 1 ]
+then
+	# Add /infcloud to the path of radicale to access it from the portal
+	# Replace radicale by InfCloud into YunoHost portal
+	ynh_app_setting_set $app path ${path_url%/}/infcloud
+	# Protect InfCloud access
+	ynh_app_setting_set $app protected_uris "/"
+	domain_regex=$(echo "$domain" | sed 's@-@.@g')
+	# Radicale is always accessible (For access to ressources)
+	ynh_app_setting_set $app skipped_regex "$domain_regex$path_url"
+else
+	# If only radicale is installed
+	# Radicale is always accessible (For access to ressources)
+	ynh_app_setting_set $app unprotected_uris "/"
+fi
 
 #=================================================
-# STANDARD UPGRADE STEPS
+# CREATE DEDICATED USER
 #=================================================
-# UPGRADE DEPENDENCIES
-#=================================================
-ynh_script_progression --message="Upgrade dependencies" --weight=5
+ynh_script_progression --message="Making sure dedicated system user exists..."
 
-ynh_install_app_dependencies $pkg_dependencies
+# Create a dedicated user (if not existing)
+ynh_system_user_create --username=$app --home_dir="$final_path"
 
 #=================================================
 # NGINX CONFIGURATION
@@ -158,7 +170,7 @@ ynh_install_app_dependencies $pkg_dependencies
 # Overwrite the NGINX configuration only if it's allowed
 if [ $overwrite_nginx -eq 1 ]
 then
-	ynh_script_progression --message="Reconfigure nginx" --weight=2
+	ynh_script_progression --message="Upgrading NGINX web server configuration..." --weight=2
 	ynh_add_nginx_config
 	if [ $infcloud -eq 1 ]
 	then
@@ -169,24 +181,23 @@ then
 fi
 
 #=================================================
-# CREATE DEDICATED USER
+# UPGRADE DEPENDENCIES
 #=================================================
-ynh_script_progression --message="Create a dedicated user" --weight=2
+ynh_script_progression --message="Upgrading dependencies..." --weight=5
 
-# Create a dedicated user (if not existing)
-ynh_system_user_create $app
+ynh_install_app_dependencies $pkg_dependencies
+
+#=================================================
+# PHP-FPM CONFIGURATION
+#=================================================
 
 if [ $infcloud -eq 1 ]
 then
-	#=================================================
-	# PHP-FPM CONFIGURATION
-	#=================================================
-
 	# Overwrite the php-fpm configuration only if it's allowed
 	if [ $overwrite_phpfpm -eq 1 ]
 	then
-		ynh_script_progression --message="Reconfigure PHP-FPM" --weight=2
-		# Create a dedicated php-fpm config
+		ynh_script_progression --message="Upgrading PHP-FPM configuration..." --weight=2
+		# Create a dedicated PHP-FPM config
 		ynh_add_fpm_config
 	fi
 fi
@@ -368,14 +379,6 @@ chmod 777 $final_path/default_collections $final_path/default_collections/USER
 cp ../conf/radicale.ini /etc/uwsgi/apps-available/
 
 #=================================================
-# ADVERTISE SERVICE IN ADMIN PANEL
-#=================================================
-ynh_script_progression --message="Restart Radicale" --weight=2
-
-ynh_systemd_action --action=restart --service_name=uwsgi
-yunohost service add uwsgi --log="/var/log/uwsgi/app/radicale.log"
-
-#=================================================
 # PREPARE THE HOOKS
 #=================================================
 
@@ -384,41 +387,35 @@ ynh_replace_string "__FINALPATH__" "$final_path" ../hooks/post_user_create
 ynh_replace_string "__FINALPATH__" "$final_path" ../hooks/post_user_delete
 
 #=================================================
+# GENERIC FINALIZATION
+#=================================================
 # SETUP LOGROTATE
 #=================================================
-ynh_script_progression --message="Reconfigure logrotate" --weight=3
+ynh_script_progression --message="Upgrading logrotate configuration..." --weight=3
 
+# Use logrotate to manage app-specific logfile(s)
 ynh_use_logrotate --non-append
 
 #=================================================
-# GENERIC FINALISATION
+# INTEGRATE SERVICE IN YUNOHOST
 #=================================================
-# SETUP SSOWAT
-#=================================================
-ynh_script_progression --message="Reconfigure SSOwat" --weight=2
+ynh_script_progression --message="Integrating service in YunoHost..." --weight=2
 
-if [ $infcloud -eq 1 ]
-then
-	# Add /infcloud to the path of radicale to access it from the portal
-	# Replace radicale by InfCloud into YunoHost portal
-	ynh_app_setting_set $app path ${path_url%/}/infcloud
-	# Protect InfCloud access
-	ynh_app_setting_set $app protected_uris "/"
-	domain_regex=$(echo "$domain" | sed 's@-@.@g')
-	# Radicale is always accessible (For access to ressources)
-	ynh_app_setting_set $app skipped_regex "$domain_regex$path_url"
-else
-	# If only radicale is installed
-	# Radicale is always accessible (For access to ressources)
-	ynh_app_setting_set $app unprotected_uris "/"
-fi
+yunohost service add uwsgi --log="/var/log/uwsgi/app/radicale.log"
+
+#=================================================
+# START SYSTEMD SERVICE
+#=================================================
+ynh_script_progression --message="Starting a systemd service..."
+
+ynh_systemd_action --action=restart --service_name=uwsgi
 
 #=================================================
 # RELOAD NGINX
 #=================================================
-ynh_script_progression --message="Reload NGINX"
+ynh_script_progression --message="Reloading NGINX web server..."
 
-ynh_systemd_action --action=reload --service_name=nginx
+ynh_systemd_action --service_name=nginx --action=reload
 
 #=================================================
 # DEACTIVE MAINTENANCE MODE
@@ -466,4 +463,4 @@ ynh_send_readme_to_admin --app_message="mail_to_send" --recipients="$admin" --ty
 # END OF SCRIPT
 #=================================================
 
-ynh_script_progression --message="Upgrade completed" --last
+ynh_script_progression --message="Upgrade of $app completed" --last
