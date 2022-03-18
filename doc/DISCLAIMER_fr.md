@@ -2,17 +2,17 @@
 
 Utilisez le fichier `/etc/radicale/config` pour modifier la configuration principale de radicale.
 Le fichier `/etc/radicale/logging` pour changer le niveau de journalisation.
-Et le fichier `/etc/radicale/rights` pour éditer la façon dont les calendriers seront partagés.
+Et le fichier `/etc/radicale/rights` pour Ã©diter la faÃ§on dont les calendriers seront partagÃ©s.
 
-InfCloud a son propre fichier de config, à /var/www/radicale/infcloud/config.js
+InfCloud a son propre fichier de config, Ã  /var/www/radicale/infcloud/config.js
 
-## Fonctionnalités spécifiques à YunoHost
+## FonctionnalitÃ©s spÃ©cifiques Ã  YunoHost
 
-* Ce package propose une interface web pour radicale nommée InfCloud.
+* Ce package propose une interface web pour radicale nommÃ©e InfCloud.
 
 #### Support multi-utilisateurs
 
-Supportée, avec LDAP et SSO seulement avec radicale, pas pour InfCloud.
+SupportÃ©e, avec LDAP et SSO seulement avec radicale, pas pour InfCloud.
 
 ## Limitations
 
