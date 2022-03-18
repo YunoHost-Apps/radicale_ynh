@@ -43,7 +43,7 @@
 dns_lookup = True
 
 # Root URL of Radicale (starting and ending with a slash)
-base_prefix = __PATH__/
+base_prefix = __PATH__
 
 # Possibility to allow URLs cleaned by a HTTP server, without the base_prefix
 #can_skip_base_prefix = False

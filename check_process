@@ -2,9 +2,9 @@
 	; Manifest
 		domain="domain.tld"
 		path="/path"
+		language="French"
 		admin="john"
 		infcloud=1
-		language="French"
 	; Checks
 		pkg_linter=1
 		setup_sub_dir=1
@@ -23,9 +23,9 @@
 	; Manifest
 		domain="domain.tld"
 		path="/path"
+		language="French"
 		admin="john"
 		infcloud=0
-		language="French"
 	; Checks
 		setup_sub_dir=1
 		setup_root=1
@@ -33,7 +33,10 @@
 		setup_private=0
 		setup_public=0
 		upgrade=1
+		# 1.1.1
 		upgrade=1	from_commit=3be74eb1ebd9da9b13f9080fd7aa0e535ab09192
+		# 1.1.6~ynh5
+		upgrade=1	from_commit=21b5079179979dbe53e2c916df175f19f24c74ab
 		backup_restore=1
 		multi_instance=0
 		port_already_use=0

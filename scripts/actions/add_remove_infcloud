@@ -36,7 +36,7 @@ fi
 #=================================================
 # INSTALL OR REMOVE INFCLOUD
 #=================================================
-ynh_script_progression --message="$action_print InfCloud." --weight=9
+ynh_script_progression --message="$action_print InfCloud."
 
 if [ $infcloud -eq 1 ]
 then
@@ -177,4 +177,4 @@ ynh_app_setting_set $app infcloud $infcloud
 # END OF SCRIPT
 #=================================================
 
-ynh_script_progression --message="Execution completed" --last
+ynh_script_progression --message="Execution completed"

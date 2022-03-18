@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #=================================================
-# GENERIC STARTING
+# GENERIC START
 #=================================================
 # IMPORT GENERIC HELPERS
 #=================================================
@@ -10,22 +10,24 @@ source _common.sh
 source /usr/share/yunohost/helpers
 
 #=================================================
-# MANAGE FAILURE OF THE SCRIPT
+# MANAGE SCRIPT FAILURE
 #=================================================
 
+ynh_clean_setup () {
+	ynh_clean_check_starting
+}
 # Exit if an error occurs during the execution of the script
 ynh_abort_if_errors
 
 #=================================================
 # RETRIEVE ARGUMENTS FROM THE MANIFEST
 #=================================================
-ynh_script_progression --message="Retrieve arguments from the manifest"
 
 domain=$YNH_APP_ARG_DOMAIN
 path_url=$YNH_APP_ARG_PATH
+language=$YNH_APP_ARG_LANGUAGE
 admin=$YNH_APP_ARG_ADMIN
 infcloud=$YNH_APP_ARG_INFCLOUD
-language=$YNH_APP_ARG_LANGUAGE
 
 app=$YNH_APP_INSTANCE_NAME
 
@@ -33,92 +35,69 @@ app=$YNH_APP_INSTANCE_NAME
 version=$(ynh_app_upstream_version)
 
 #=================================================
-# CHECK IF THE APP CAN BE INSTALLED WITH THIS ARGS
+# CHECK IF THE APP CAN BE INSTALLED WITH THESE ARGS
 #=================================================
-ynh_script_progression --message="Check if the app can be installed"
+ynh_script_progression --message="Validating installation parameters..."
 
 final_path=/var/www/$app
-test ! -e "$final_path" || ynh_die "This path already contains a folder"
+test ! -e "$final_path" || ynh_die --message="This path already contains a folder"
 
 # Register (book) web path
-ynh_webpath_register $app $domain $path_url
+ynh_webpath_register --app=$app --domain=$domain --path_url=$path_url
 
 #=================================================
 # STORE SETTINGS FROM MANIFEST
 #=================================================
-ynh_script_progression --message="Store settings from manifest" --weight=4
+ynh_script_progression --message="Storing installation settings..."
 
-ynh_app_setting_set $app domain $domain
-ynh_app_setting_set $app path $path_url
-ynh_app_setting_set $app admin $admin
-ynh_app_setting_set $app infcloud $infcloud
-ynh_app_setting_set $app version $version
+ynh_app_setting_set --app=$app --key=domain --value=$domain
+ynh_app_setting_set --app=$app --key=path --value=$path_url
+ynh_app_setting_set --app=$app --key=admin --value=$admin
+ynh_app_setting_set --app=$app --key=infcloud --value=$infcloud
+ynh_app_setting_set --app=$app --key=version --value=$version
 
-ynh_app_setting_set $app overwrite_logging "1"
-ynh_app_setting_set $app overwrite_config "1"
-ynh_app_setting_set $app overwrite_infcloud "1"
-ynh_app_setting_set $app overwrite_nginx "1"
-ynh_app_setting_set $app overwrite_phpfpm "1"
-ynh_app_setting_set $app admin_mail_html "1"
+ynh_app_setting_set --app=$app --key=overwrite_logging --value="1"
+ynh_app_setting_set --app=$app --key=overwrite_config --value="1"
+ynh_app_setting_set --app=$app --key=overwrite_infcloud --value="1"
+ynh_app_setting_set --app=$app --key=overwrite_nginx --value="1"
+ynh_app_setting_set --app=$app --key=overwrite_phpfpm --value="1"
+ynh_app_setting_set --app=$app --key=admin_mail_html --value="1"
 
 #=================================================
 # STANDARD MODIFICATIONS
 #=================================================
 # INSTALL DEPENDENCIES
 #=================================================
-ynh_script_progression --message="Install dependencies" --weight=25
+ynh_script_progression --message="Installing dependencies..."
 
 ynh_install_app_dependencies $pkg_dependencies
 
 #=================================================
-# NGINX CONFIGURATION
-#=================================================
-ynh_script_progression --message="Configure NGINX" --weight=2
-
-ynh_add_nginx_config
-if [ $infcloud -eq 1 ]
-then
-	# Add InfCloud in NGINX config
-	ynh_replace_string "#INFCLOUD#" "" /etc/nginx/conf.d/$domain.d/$app.conf
-fi
-ynh_store_file_checksum "/etc/nginx/conf.d/$domain.d/$app.conf"
-
-#=================================================
 # CREATE DEDICATED USER
 #=================================================
-ynh_script_progression --message="Create a dedicated user" --weight=2
+ynh_script_progression --message="Configuring system user..."
 
-# Create a dedicated system user
-ynh_system_user_create $app
-
-#=================================================
-# SPECIFIC SETUP
-#=================================================
-# INSTALL RADICALE IN A VIRTUALENV
-#=================================================
-ynh_script_progression --message="Install Radicale in a virtualenv" --weight=15
-
-# Init virtualenv
-virtualenv /opt/yunohost/$app
-version=$(ynh_app_setting_get $app version $version)
-/opt/yunohost/$app/bin/pip install radicale==$version python-ldap
+# Create a system user
+ynh_system_user_create --username=$app --home_dir="$final_path"
 
 #=================================================
-# COPY FILES INTO $FINAL_PATH
+# DOWNLOAD, CHECK AND UNPACK SOURCE
 #=================================================
-ynh_script_progression --message="Download, check and unpack source" --weight=2
+ynh_script_progression --message="Setting up source files..."
 
+ynh_app_setting_set --app=$app --key=final_path --value=$final_path
 # Create the directory and set the path in the config
-mkdir "$final_path"
-ynh_app_setting_set $app final_path $final_path
+mkdir -p "$final_path/collections"
 
 # Copy files to the right place
-mkdir -p $final_path/collections
 cp ../conf/radicale.wsgi $final_path
+
 # Copy extra files
 cp -a ../sources/extra_files_radicale/. "$final_path"
+
 # regex.py file is patched to fix the awful commit e807c3d35bea9cfcfcacac83b1b17d748ea15a39 that stop the reading of "rights" file after the first match.
 mv "$final_path/regex.py" /opt/yunohost/$app/lib/python*/site-packages/radicale/rights/regex.py
+
 if [ $infcloud -eq 1 ]
 then
 	#Instal InfCloud
@@ -127,26 +106,81 @@ then
 	# Modify final_path for InfCloud installation
 	final_path=$final_path/infcloud
 	# Download and uncompress the source into final_path
-	ynh_setup_source "$final_path"
+	ynh_setup_source --dest_dir="$final_path"
 	# Restore the content of $final_path
 	final_path=$final_path_backup
 fi
 
+chmod 750 "$final_path"
+chmod -R o-rwx "$final_path"
+chown -R $app:www-data "$final_path"
+
+# Set default permissions as radicale do.
+chmod 666 -R $final_path/default_collections
+chmod 777 $final_path/default_collections $final_path/default_collections/USER
+
 #=================================================
-# CONFIGURE RADICALE
+# NGINX CONFIGURATION
 #=================================================
-ynh_script_progression --message="Configure Radicale" --weight=5
+ynh_script_progression --message="Configuring NGINX web server..."
+
+# Create a dedicated NGINX config
+ynh_add_nginx_config
+
+if [ $infcloud -eq 1 ]
+then
+	# Add InfCloud in NGINX config
+	ynh_replace_string --match_string="#INFCLOUD#" --replace_string="" --target_file="/etc/nginx/conf.d/$domain.d/$app.conf"
+fi
+ynh_store_file_checksum --file="/etc/nginx/conf.d/$domain.d/$app.conf"
+
+#=================================================
+# PHP-FPM CONFIGURATION
+#=================================================
+
+if [ $infcloud -eq 1 ]
+then
+	ynh_script_progression --message="Configuring PHP-FPM..."
+
+	# Create a dedicated PHP-FPM config
+	ynh_add_fpm_config
+	phpversion=$(ynh_app_setting_get --app=$app --key=phpversion)
+fi
+
+#=================================================
+# SPECIFIC SETUP
+#=================================================
+# INSTALL RADICALE IN A VIRTUALENV
+#=================================================
+ynh_script_progression --message="Install Radicale in a virtualenv"
+
+# Init virtualenv
+virtualenv /opt/yunohost/$app
+version=$(ynh_app_setting_get --app=$app --key=version)
+/opt/yunohost/$app/bin/pip install radicale==$version python-ldap
+
+# useradd radicale -d /opt/yunohost/$app
+chown radicale: -R /opt/yunohost/$app
+
+find /opt/yunohost/$app/ -type d -exec chmod 2755 {} \;
+find /opt/yunohost/$app/ -type f -exec chmod g+r,o+r {} \;
+
+#=================================================
+# ADD A CONFIGURATION
+#=================================================
+ynh_script_progression --message="Adding a configuration file..."
 
 mkdir -p /etc/$app
-cp ../conf/config /etc/$app/
-cp ../conf/logging /etc/$app/
-cp ../conf/rights /etc/$app/
-ynh_replace_string "__PATH__" "${path_url%/}" /etc/$app/config
-ynh_replace_string "__FINALPATH__" "$final_path" /etc/$app/config
-# Calculate and store the config file checksum into the app settings
-ynh_store_file_checksum "/etc/$app/config"
-# Calculate and store the config file checksum into the app settings
-ynh_store_file_checksum "/etc/$app/logging"
+
+ynh_add_config --template="../conf/config" --destination="/etc/$app/config"
+
+ynh_add_config --template="../conf/logging" --destination="/etc/$app/logging"
+
+ynh_add_config --template="../conf/rights" --destination="/etc/$app/rights"
+
+chmod 755 /etc/$app/
+chmod 644 /etc/$app/*
+
 if [ $infcloud -eq 1 ]
 then
 	# InfCloud configuration
@@ -183,49 +217,18 @@ then
 		"Chinese") language="zh_CN"
 		;;
 	esac
-	ynh_app_setting_set $app language $language
-	cp ../conf/config.js "$final_path/infcloud/"
-	ynh_replace_string "__DOMAIN__" "$domain" "$final_path/infcloud/config.js"
-	ynh_replace_string "__PATH__" "${path_url%/}" "$final_path/infcloud/config.js"
-	ynh_replace_string "__LANG__" "$language" "$final_path/infcloud/config.js"
-	ynh_replace_string "__ADMIN__" "$admin" "$final_path/infcloud/config.js"
-	ynh_replace_string "__TIMEZONE__" "$(cat /etc/timezone)" "$final_path/infcloud/config.js"
-	# Calculate and store the config file checksum into the app settings
-	ynh_store_file_checksum "$final_path/infcloud/config.js"
+	ynh_app_setting_set --app=$app --key=language --value=$language
+	timezone=$(cat /etc/timezone)
+	ynh_add_config --template="../conf/config.js" --destination="$final_path/infcloud/config.js"
+
+	chmod 400 "$final_path/infcloud/config.js"
+	chown $app:$app "$final_path/infcloud/config.js"
 fi
-
-#=================================================
-# SET PERMISSIONS ON RADICALE'S DIRECTORIES
-#=================================================
-
-# useradd radicale -d /opt/yunohost/$app
-chown radicale: -R /opt/yunohost/$app
-
-chown -R radicale: $final_path
-mkdir -p /var/log/$app
-touch /var/log/$app/$app.log
-chown radicale -R /var/log/$app
-# Set default permissions as radicale do.
-chmod 666 -R $final_path/default_collections
-chmod 777 $final_path/default_collections $final_path/default_collections/USER
-
-# Set permissions
-chmod 755 /etc/$app/
-find /opt/yunohost/$app/ -type d -exec chmod 2755 {} \;
-find /opt/yunohost/$app/ -type f -exec chmod g+r,o+r {} \;
-chmod 644 /etc/$app/*
-
-#=================================================
-# CONFIGURE UWSGI FOR RADICALE
-#=================================================
-
-cp ../conf/radicale.ini /etc/uwsgi/apps-available/
-ln -s /etc/uwsgi/apps-available/radicale.ini /etc/uwsgi/apps-enabled/
 
 #=================================================
 # GENERATE CALENDARS AND ADDRESS BOOKS FOR ALL USERS
 #=================================================
-ynh_script_progression --message="Generate calendars and address books for all users" --weight=3
+ynh_script_progression --message="Generate calendars and address books for all users"
 
 # Create default calendars and address books for each users
 while read user
@@ -236,70 +239,77 @@ do
 done <<< "$(yunohost user list | grep username | cut -d ":" -f 2 | cut -c 2-)"
 
 #=================================================
-# ADVERTISE SERVICE IN ADMIN PANEL
-#=================================================
-ynh_script_progression --message="Restart Radicale" --weight=2
-
-ynh_systemd_action --action=restart --service_name=uwsgi
-yunohost service add uwsgi --log="/var/log/uwsgi/app/radicale.log"
-
-#=================================================
 # PREPARE THE HOOKS
 #=================================================
 
 # Modify the hooks for create user collections and to remove them.
-ynh_replace_string "__FINALPATH__" "$final_path" ../hooks/post_user_create
-ynh_replace_string "__FINALPATH__" "$final_path" ../hooks/post_user_delete
+ynh_replace_string --match_string="__FINALPATH__" --replace_string="$final_path" --target_file="../hooks/post_user_create"
+ynh_replace_string --match_string="__FINALPATH__" --replace_string="$final_path" --target_file="../hooks/post_user_delete"
 
 #=================================================
-# GENERIC FINALISATION
+# SETUP SYSTEMD
 #=================================================
-# SETUP SSOWAT
+ynh_script_progression --message="Configuring a systemd service..."
+
+cp ../conf/radicale.ini /etc/uwsgi/apps-available/
+ln -s /etc/uwsgi/apps-available/radicale.ini /etc/uwsgi/apps-enabled/
+
 #=================================================
-ynh_script_progression --message="Setup SSOwat" --weight=3
-
-if [ $infcloud -eq 1 ]
-then
-	# Add /infcloud to the path of radicale to access it from the portal
-	# Replace radicale by InfCloud into YunoHost portal
-	ynh_app_setting_set $app path ${path_url%/}/infcloud
-	# Protect InfCloud access
-	ynh_app_setting_set $app protected_uris "/"
-	domain_regex=$(echo "$domain" | sed 's@-@.@g')
-	# Radicale is always accessible (For access to ressources)
-	ynh_app_setting_set $app skipped_regex "$domain_regex$path_url"
-else
-	# If only radicale is installed
-	# Radicale is always accessible (For access to ressources)
-	ynh_app_setting_set $app unprotected_uris "/"
-fi
-
+# GENERIC FINALIZATION
 #=================================================
 # SETUP LOGROTATE
 #=================================================
-ynh_script_progression --message="Configure logrotate" --weight=2
+ynh_script_progression --message="Configuring log rotation..."
+
+mkdir -p /var/log/$app
+touch /var/log/$app/$app.log
+chown radicale -R /var/log/$app
 
 # Use logrotate to manage application logfile(s)
 ynh_use_logrotate
 
 #=================================================
-# PHP-FPM CONFIGURATION
+# INTEGRATE SERVICE IN YUNOHOST
 #=================================================
+ynh_script_progression --message="Integrating service in YunoHost..."
+
+yunohost service add $app --log="/var/log/uwsgi/app/radicale.log"
+
+#=================================================
+# START SYSTEMD SERVICE
+#=================================================
+ynh_script_progression --message="Starting a systemd service..."
+
+# Start a systemd service
+ynh_systemd_action --service_name=uwsgi --action="restart"
+
+#=================================================
+# SETUP SSOWAT
+#=================================================
+ynh_script_progression --message="Configuring permissions..."
 
 if [ $infcloud -eq 1 ]
 then
-	ynh_script_progression --message="Configure PHP-FPM" --weight=4
-	# Create a dedicated php-fpm config
-	ynh_add_fpm_config
-	phpversion=$(ynh_app_setting_get --app=$app --key=phpversion)
+	# Add /infcloud to the path of radicale to access it from the portal
+	# Replace radicale by InfCloud into YunoHost portal
+	ynh_app_setting_set --app=$app --key=path --value="${path_url%/}/infcloud"
+	# Protect InfCloud access
+	ynh_app_setting_set --app=$app --key=protected_uris --value="/"
+	domain_regex=$(echo "$domain" | sed 's@-@.@g')
+	# Radicale is always accessible (For access to ressources)
+	ynh_app_setting_set --app=$app --key=skipped_regex --value="$domain_regex$path_url"
+else
+	# If only radicale is installed
+	# Radicale is always accessible (For access to ressources)
+	ynh_app_setting_set --app=$app --key=unprotected_uris --value="/"
 fi
 
 #=================================================
 # RELOAD NGINX
 #=================================================
-ynh_script_progression --message="Reload NGINX" --weight=4
+ynh_script_progression --message="Reloading NGINX web server..."
 
-ynh_systemd_action --action=reload --service_name=nginx
+ynh_systemd_action --service_name=nginx --action=reload
 
 #=================================================
 # SEND A README FOR THE ADMIN
@@ -332,4 +342,4 @@ ynh_send_readme_to_admin --app_message="mail_to_send" --recipients="$admin" --ty
 # END OF SCRIPT
 #=================================================
 
-ynh_script_progression --message="Installation completed" --last
+ynh_script_progression --message="Installation of $app completed"
