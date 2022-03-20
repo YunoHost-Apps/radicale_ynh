@@ -97,15 +97,8 @@ cp -a ../sources/extra_files_radicale/. "$final_path"
 
 if [ $infcloud -eq 1 ]
 then
-	#Instal InfCloud
-	# Backup the content of $final_path
-	final_path_backup=$final_path
-	# Modify final_path for InfCloud installation
-	final_path=$final_path/infcloud
 	# Download and uncompress the source into final_path
-	ynh_setup_source --dest_dir="$final_path"
-	# Restore the content of $final_path
-	final_path=$final_path_backup
+	ynh_setup_source --dest_dir="$final_path/infcloud"
 fi
 
 chmod 750 "$final_path"

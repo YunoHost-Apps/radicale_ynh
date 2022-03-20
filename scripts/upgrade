@@ -85,46 +85,46 @@ if [ -z "$version" ]
 then
 	# Retrieve the version number in the manifest file.
 	version=$(ynh_app_upstream_version)
-	ynh_app_setting_set $app version "$version"
+	ynh_app_setting_set --app=$app --key=version --value="$version"
 fi
 
 # Fix infcloud as a boolean
 if [ "$infcloud" = "Yes" ]; then
-	ynh_app_setting_set $app infcloud 1
+	ynh_app_setting_set --app=$app --key=infcloud --value=1
 	infcloud=1
 elif [ "$infcloud" = "No" ]; then
-	ynh_app_setting_set $app infcloud 0
+	ynh_app_setting_set --app=$app --key=infcloud --value=0
 	infcloud=0
 fi
 
 # If overwrite_logging doesn't exist, create it
 if [ -z "$overwrite_logging" ]; then
 	overwrite_logging=1
-	ynh_app_setting_set $app overwrite_logging $overwrite_logging
+	ynh_app_setting_set --app=$app --key=overwrite_logging --value=$overwrite_logging
 fi
 
 # If overwrite_config doesn't exist, create it
 if [ -z "$overwrite_config" ]; then
 	overwrite_config=1
-	ynh_app_setting_set $app overwrite_config $overwrite_config
+	ynh_app_setting_set --app=$app --key=overwrite_config --value=$overwrite_config
 fi
 
 # If overwrite_infcloud doesn't exist, create it
 if [ -z "$overwrite_infcloud" ]; then
 	overwrite_infcloud=1
-	ynh_app_setting_set $app overwrite_infcloud $overwrite_infcloud
+	ynh_app_setting_set --app=$app --key=overwrite_infcloud --value=$overwrite_infcloud
 fi
 
 # If overwrite_nginx doesn't exist, create it
 if [ -z "$overwrite_nginx" ]; then
 	overwrite_nginx=1
-	ynh_app_setting_set $app overwrite_nginx $overwrite_nginx
+	ynh_app_setting_set --app=$app --key=overwrite_nginx --value=$overwrite_nginx
 fi
 
 # If overwrite_phpfpm doesn't exist, create it
 if [ -z "$overwrite_phpfpm" ]; then
 	overwrite_phpfpm=1
-	ynh_app_setting_set $app overwrite_phpfpm $overwrite_phpfpm
+	ynh_app_setting_set --app=$app --key=overwrite_phpfpm --value=$overwrite_phpfpm
 fi
 
 # Cleaning legacy permissions
@@ -159,24 +159,10 @@ then
 	# Copy extra files
 	cp -a ../sources/extra_files_radicale/. "$final_path"
 	
-	if [ "$infcloud" = "1" ]
+	if [ $infcloud -eq 1 ]
 	then
-		#Instal InfCloud
-		# Backup the content of $final_path
-		final_path_backup=$final_path
-		# Modify final_path for InfCloud installation
-		final_path=$final_path/infcloud
-		# If overwrite_infcloud is 0, copy the config file, then restore it.
-		if [ $overwrite_infcloud -eq 0 ]; then
-			cp -a $final_path/config.js ./config.js
-		fi
 		# Download and uncompress the source into final_path
-		ynh_setup_source --dest_dir="$final_path"
-		if [ $overwrite_infcloud -eq 0 ]; then
-			mv ./config.js $final_path/config.js
-		fi
-		# Restore the content of $final_path
-		final_path=$final_path_backup
+		ynh_setup_source --dest_dir="$final_path/infcloud" --keep="config.js"
 	fi
 fi
 
@@ -227,6 +213,7 @@ then
 
 		# Create a dedicated PHP-FPM config
 		ynh_add_fpm_config
+		phpversion=$(ynh_app_setting_get --app=$app --key=phpversion)
 	fi
 fi
 
@@ -274,9 +261,9 @@ chmod 755 /etc/$app/
 chmod 644 /etc/$app/*
 
 # Overwrite the InfCloud config file only if it's allowed
-if [ $overwrite_infcloud -eq 1 ]
+if [ $infcloud -eq 1 ]
 then
-	if [ $infcloud -eq 1 ]
+	if [ $overwrite_infcloud -eq 1 ]
 	then
 		# InfCloud configuration
 		# Set language
