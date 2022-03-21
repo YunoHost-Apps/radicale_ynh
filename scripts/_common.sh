@@ -9,14 +9,6 @@ YNH_PHP_VERSION="7.3"
 pkg_dependencies="python-pip python-virtualenv virtualenv python-dev libldap2-dev libsasl2-dev libssl-dev uwsgi uwsgi-plugin-python"
 
 #=================================================
-# PACKAGE CHECK BYPASSING...
-#=================================================
-
-IS_PACKAGE_CHECK () {
-	return $(env | grep -c container=lxc)
-}
-
-#=================================================
 # BOOLEAN CONVERTER
 #=================================================
 
@@ -259,72 +251,6 @@ ynh_maintenance_mode_OFF () {
 	rm "/etc/nginx/conf.d/$domain.d/maintenance.$app.conf"
 
 	systemctl reload nginx
-}
-
-#=================================================
-
-# Download and check integrity of a file from app.src_file
-#
-# The file conf/app.src_file need to contains:
-#
-# FILE_URL=Address to download the file
-# FILE_SUM=Control sum
-# # (Optional) Program to check the integrity (sha256sum, md5sum...)
-# # default: sha256
-# FILE_SUM_PRG=sha256
-# # (Optionnal) Name of the local archive (offline setup support)
-# # default: Name of the downloaded file.
-# FILENAME=example.deb
-#
-# usage: ynh_download_file --dest_dir="/destination/directory" [--source_id=myfile]
-# | arg: -d, --dest_dir=  - Directory where to download the file
-# | arg: -s, --source_id= - Name of the source file 'app.src_file' if it isn't '$app'
-ynh_download_file () {
-	# Declare an array to define the options of this helper.
-	declare -Ar args_array=( [d]=dest_dir= [s]=source_id= )
-	local dest_dir
-	local source_id
-	# Manage arguments with getopts
-	ynh_handle_getopts_args "$@"
-
-	source_id=${source_id:-app} # If the argument is not given, source_id equals "$app"
-
-	# Load value from configuration file (see above for a small doc about this file
-	# format)
-	local src_file="$YNH_CWD/../conf/${source_id}.src_file"
-	# If the src_file doesn't exist, use the backup path instead, with a "settings" directory
-	if [ ! -e "$src_file" ]
-	then
-		src_file="$YNH_CWD/../settings/conf/${source_id}.src_file"
-	fi
-	local file_url=$(grep 'FILE_URL=' "$src_file" | cut -d= -f2-)
-	local file_sum=$(grep 'FILE_SUM=' "$src_file" | cut -d= -f2-)
-	local file_sumprg=$(grep 'FILE_SUM_PRG=' "$src_file" | cut -d= -f2-)
-	local filename=$(grep 'FILENAME=' "$src_file" | cut -d= -f2-)
-
-	# Default value
-	file_sumprg=${file_sumprg:-sha256sum}
-	if [ "$filename" = "" ] ; then
-		filename="$(basename "$file_url")"
-	fi
-	local local_src="/opt/yunohost-apps-src/${YNH_APP_ID}/${filename}"
-
-	if test -e "$local_src"
-	then    # Use the local source file if it is present
-		cp $local_src $filename
-	else    # If not, download the source
-		local out=`wget -nv -O $filename $file_url 2>&1` || ynh_print_err $out
-	fi
-
-	# Check the control sum
-	echo "${file_sum} ${filename}" | ${file_sumprg} -c --status \
-		|| ynh_die "Corrupt file"
-
-	# Create the destination directory, if it's not already.
-	mkdir -p "$dest_dir"
-
-	# Move the file to its destination
-	mv $filename $dest_dir
 }
 
 #=================================================

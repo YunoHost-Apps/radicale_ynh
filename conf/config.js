@@ -332,7 +332,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 // port, ... (client installed into Davical "htdocs" subdirectory;
 // works "out of the box", no additional setup required):
 var globalNetworkCheckSettings={
-	href: 'https://__DOMAIN____PATH__/',
+	href: 'https://__DOMAIN____PATH__',
 	hrefLabel: null,
 	crossDomain: null,
 	additionalResources: [],
@@ -474,7 +474,7 @@ var globalEnableKbNavigation=true;
 //   uk_UA (Українська [Ukrainian]; thanks Serge Yakimchuck)
 //   zh_CN (中国 [Chinese]; thanks Fandy)
 // Example:
-var globalInterfaceLanguage='__LANG__';
+var globalInterfaceLanguage='__LANGUAGE__';
 
 
 // globalInterfaceCustomLanguages
