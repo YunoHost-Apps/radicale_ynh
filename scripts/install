@@ -214,8 +214,8 @@ then
 	timezone=$(cat /etc/timezone)
 	ynh_add_config --template="../conf/config.js" --destination="$final_path/infcloud/config.js"
 
-	chmod 400 "$final_path/infcloud/config.js"
-	chown $app:$app "$final_path/infcloud/config.js"
+	chmod 440 "$final_path/infcloud/config.js"
+	chown $app:www-data "$final_path/infcloud/config.js"
 fi
 
 #=================================================
