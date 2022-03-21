@@ -34,7 +34,7 @@
 		setup_public=0
 		upgrade=1
 		# 1.1.1
-		upgrade=1	from_commit=3be74eb1ebd9da9b13f9080fd7aa0e535ab09192
+		#upgrade=1	from_commit=3be74eb1ebd9da9b13f9080fd7aa0e535ab09192
 		# 1.1.6~ynh5
 		upgrade=1	from_commit=21b5079179979dbe53e2c916df175f19f24c74ab
 		backup_restore=1
