@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #=================================================
-# GENERIC STARTING
+# GENERIC START
 #=================================================
 # IMPORT GENERIC HELPERS
 #=================================================
@@ -12,47 +12,62 @@ source /usr/share/yunohost/helpers
 #=================================================
 # LOAD SETTINGS
 #=================================================
-ynh_script_progression --message="Load settings"
+ynh_script_progression --message="Loading installation settings..."
 
 app=$YNH_APP_INSTANCE_NAME
 
 domain=$(ynh_app_setting_get --app=$app --key=domain)
+final_path=$(ynh_app_setting_get --app=$app --key=final_path)
 
 #=================================================
 # STANDARD REMOVE
 #=================================================
+# REMOVE SERVICE INTEGRATION IN YUNOHOST
+#=================================================
+
+# Remove the service from the list of services known by YunoHost (added from `yunohost service add`)
+if ynh_exec_warn_less yunohost service status $app >/dev/null
+then
+	ynh_script_progression --message="Removing $app service integration..."
+	yunohost service remove $app
+fi
+
+#=================================================
 # STOP AND REMOVE SERVICE
 #=================================================
-ynh_script_progression --message="Stop and remove the service" --weight=3
+ynh_script_progression --message="Stopping and removing the systemd service..."
 
 # Delete uwsgi configuration
-ynh_systemd_action --action=stop --service_name=uwsgi
 if [ -h "/etc/uwsgi/apps-enabled/radicale.ini" ]; then
 	echo "Delete uwsgi config"
-	ynh_secure_remove "/etc/uwsgi/apps-enabled/radicale.ini"
+	ynh_secure_remove --file="/etc/uwsgi/apps-enabled/radicale.ini"
 fi
-ynh_secure_remove "/etc/uwsgi/apps-available/radicale.ini"
+
+ynh_secure_remove --file="/etc/uwsgi/apps-available/radicale.ini"
+
+ynh_systemd_action --action="restart" --service_name=uwsgi
 
 #=================================================
-# REMOVE DEPENDENCIES
+# REMOVE LOGROTATE CONFIGURATION
 #=================================================
-ynh_script_progression --message="Remove dependencies" --weight=10
+ynh_script_progression --message="Removing logrotate configuration..."
 
-# Remove metapackage and its dependencies
-ynh_remove_app_dependencies
+# Remove the app-specific logrotate config
+ynh_remove_logrotate
 
 #=================================================
 # REMOVE APP MAIN DIR
 #=================================================
-ynh_script_progression --message="Remove app main directory"
+ynh_script_progression --message="Removing app main directory..."
 
-ynh_secure_remove "/var/www/$app"
-ynh_secure_remove "/opt/yunohost/$app"
+# Remove the app directory securely
+ynh_secure_remove --file="$final_path"
+ynh_secure_remove --file="/opt/yunohost/$app"
 
 #=================================================
 # REMOVE NGINX CONFIGURATION
 #=================================================
-ynh_script_progression --message="Remove NGINX configuration"
+ynh_script_progression --message="Removing NGINX web server configuration..."
 
 # Remove the dedicated NGINX config
 ynh_remove_nginx_config
@@ -60,55 +75,41 @@ ynh_remove_nginx_config
 #=================================================
 # REMOVE PHP-FPM CONFIGURATION
 #=================================================
-ynh_script_progression --message="Remove PHP-FPM configuration" --weight=3
+ynh_script_progression --message="Removing PHP-FPM configuration..."
 
-# Remove the dedicated php-fpm config
+# Remove the dedicated PHP-FPM config
 ynh_remove_fpm_config
 
 #=================================================
-# REMOVE LOGROTATE CONFIG
+# REMOVE DEPENDENCIES
 #=================================================
-ynh_script_progression --message="Remove logrotate configuration" --weight=3
+ynh_script_progression --message="Removing dependencies..."
 
-# Remove the app-specific logrotate config
-ynh_remove_logrotate
+# Remove metapackage and its dependencies
+ynh_remove_app_dependencies
 
 #=================================================
 # SPECIFIC REMOVE
 #=================================================
-# REMOVE RADICALE CONFIG
+# REMOVE VARIOUS FILES
 #=================================================
+ynh_script_progression --message="Removing various files..."
 
-ynh_secure_remove "/etc/$app"
-
-#=================================================
-# REMOVE SERVICE FROM ADMIN PANEL
-#=================================================
-
-if [ -e /etc/init.d/uwsgi ]
-then
-	# Restart uwsgi service
-	ynh_systemd_action --action=start --service_name=uwsgi
-else
-	# Check if the service is declared in YunoHost
-	if yunohost service status | grep -q uwsgi
-	then
-		ynh_print_info "Remove uwsgi service" >&2
-		yunohost service remove uwsgi
-	fi
-fi
+# Remove a directory securely
+ynh_secure_remove --file="/etc/$app"
 
 #=================================================
-# GENERIC FINALISATION
+# GENERIC FINALIZATION
 #=================================================
 # REMOVE DEDICATED USER
 #=================================================
-ynh_script_progression --message="Remove the dedicated user"
+ynh_script_progression --message="Removing the dedicated system user..."
 
-ynh_system_user_delete $app
+# Delete a system user
+ynh_system_user_delete --username=$app
 
 #=================================================
 # END OF SCRIPT
 #=================================================
 
-ynh_script_progression --message="Deletion completed" --last
+ynh_script_progression --message="Removal of $app completed"
