@@ -18,7 +18,7 @@ If you don't have YunoHost, please consult [the guide](https://yunohost.org/#/in
 Radicale is a small but powerful CalDAV (calendars, todo-lists) and CardDAV (contacts) server.
 
 
-**Shipped version:** 1.1.6~ynh6
+**Shipped version:** 3.1.5~ynh1
 
 
 
