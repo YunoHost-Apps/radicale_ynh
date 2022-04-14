@@ -145,12 +145,17 @@ fi
 ynh_script_progression --message="Install Radicale in a virtualenv"
 
 # Init virtualenv
-virtualenv /opt/yunohost/$app
-version=$(ynh_app_setting_get --app=$app --key=version)
-/opt/yunohost/$app/bin/pip install radicale==$version python-ldap
+python3 -m venv /opt/yunohost/$app
+set +u;
+source /opt/yunohost/$app/bin/activate
+set -u;
+pip install radicale==$version python3-ldap
+set +u;
+deactivate
+set -u;
 
 # regex.py file is patched to fix the awful commit e807c3d35bea9cfcfcacac83b1b17d748ea15a39 that stop the reading of "rights" file after the first match.
-mv "$final_path/regex.py" /opt/yunohost/$app/lib/python*/site-packages/radicale/rights/regex.py
+#mv "$final_path/regex.py" /opt/yunohost/$app/lib/python*/site-packages/radicale/rights/regex.py
 
 # useradd radicale -d /opt/yunohost/$app
 chown radicale: -R /opt/yunohost/$app

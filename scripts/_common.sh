@@ -6,7 +6,7 @@
 
 YNH_PHP_VERSION="7.3"
 
-pkg_dependencies="python-pip python-virtualenv virtualenv python-dev libldap2-dev libsasl2-dev libssl-dev uwsgi uwsgi-plugin-python"
+pkg_dependencies="python3-pip python3-venv python3-dev libldap2-dev libsasl2-dev libssl-dev uwsgi uwsgi-plugin-python"
 
 #=================================================
 # BOOLEAN CONVERTER
