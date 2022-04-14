@@ -230,7 +230,7 @@ then
 	ynh_secure_remove --file="/opt/yunohost/$app"
 	virtualenv /opt/yunohost/$app
 	version=$(ynh_app_setting_get $app version $version)
-	bash -c "source /opt/yunohost/radicale/bin/activate && pip install radicale==$version python-ldap"
+	/opt/yunohost/$app/bin/pip install radicale==$version python-ldap
 
 	# regex.py file is patched to fix the awful commit e807c3d35bea9cfcfcacac83b1b17d748ea15a39 that stop the reading of "rights" file after the first match.
 	mv "$final_path/regex.py" /opt/yunohost/$app/lib/python*/site-packages/radicale/rights/regex.py
