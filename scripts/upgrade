@@ -232,7 +232,7 @@ then
 	set +u;
 	source /opt/yunohost/$app/bin/activate
 	set -u;
-	pip install radicale==$version python3-ldap
+	pip install --no-cache-dir radicale==$version python3-ldap
 	set +u;
 	deactivate
 	set -u;
