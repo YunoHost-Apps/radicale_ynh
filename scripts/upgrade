@@ -171,7 +171,7 @@ chmod -R o-rwx "$final_path"
 chown -R $app:www-data "$final_path"
 
 chmod 666 -R $final_path/default_collections
-chmod 777 $final_path/default_collections $final_path/default_collections/USER
+chmod 755 $final_path/default_collections $final_path/default_collections/USER
 
 #=================================================
 # NGINX CONFIGURATION
@@ -238,11 +238,11 @@ then
 	set -u;
 
 	# regex.py file is patched to fix the awful commit e807c3d35bea9cfcfcacac83b1b17d748ea15a39 that stop the reading of "rights" file after the first match.
-	mv "$final_path/regex.py" /opt/yunohost/$app/lib/python*/site-packages/radicale/rights/regex.py
+	# mv "$final_path/regex.py" /opt/yunohost/$app/lib/python*/site-packages/radicale/rights/regex.py
 fi
 
 chown radicale: -R /opt/yunohost/$app
-find /opt/yunohost/$app/ -type d -exec chmod 2755 {} \;
+find /opt/yunohost/$app/ -type d -exec chmod 755 {} \;
 find /opt/yunohost/$app/ -type f -exec chmod g+r,o+r {} \;
 
 #=================================================
