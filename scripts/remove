@@ -37,15 +37,7 @@ fi
 #=================================================
 ynh_script_progression --message="Stopping and removing the systemd service..."
 
-# Delete uwsgi configuration
-if [ -h "/etc/uwsgi/apps-enabled/radicale.ini" ]; then
-	echo "Delete uwsgi config"
-	ynh_secure_remove --file="/etc/uwsgi/apps-enabled/radicale.ini"
-fi
-
-ynh_secure_remove --file="/etc/uwsgi/apps-available/radicale.ini"
-
-ynh_systemd_action --action="restart" --service_name=uwsgi
+ynh_remove_systemd_config
 
 #=================================================
 # REMOVE LOGROTATE CONFIGURATION

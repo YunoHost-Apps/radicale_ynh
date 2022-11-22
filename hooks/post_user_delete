@@ -1,6 +1,0 @@
-#!/bin/bash
-
-user=$1
-final_path=__FINALPATH__
-
-sudo rm -r $final_path/collections/$user

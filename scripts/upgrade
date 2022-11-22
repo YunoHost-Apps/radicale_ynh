@@ -21,12 +21,13 @@ path_url=$(ynh_app_setting_get --app=$app --key=path)
 language=$(ynh_app_setting_get --app=$app --key=language)
 admin=$(ynh_app_setting_get --app=$app --key=admin)
 final_path=$(ynh_app_setting_get --app=$app --key=final_path)
+port=$(ynh_app_setting_get --app=$app --key=port)
 infcloud=$(ynh_app_setting_get --app=$app --key=infcloud)
 version=$(ynh_app_setting_get --app=$app --key=version)
-overwrite_logging=$(ynh_app_setting_get --app=$app --key=overwrite_logging)
 overwrite_config=$(ynh_app_setting_get --app=$app --key=overwrite_config)
 overwrite_infcloud=$(ynh_app_setting_get --app=$app --key=overwrite_infcloud)
 overwrite_nginx=$(ynh_app_setting_get --app=$app --key=overwrite_nginx)
+overwrite_systemd=$(ynh_app_setting_get --app=$app --key=overwrite_systemd)
 overwrite_phpfpm=$(ynh_app_setting_get --app=$app --key=overwrite_phpfpm)
 
 # Optional parameters from config-panel feature
@@ -52,9 +53,9 @@ ynh_script_progression --message="Backing up the app before upgrading (may take 
 # Backup the current version of the app
 ynh_backup_before_upgrade
 ynh_clean_setup () {
-	ynh_clean_check_starting
-	# Restore it if the upgrade fails
-	ynh_restore_upgradebackup
+    ynh_clean_check_starting
+    # Restore it if the upgrade fails
+    ynh_restore_upgradebackup
 }
 # Exit if an error occurs during the execution of the script
 ynh_abort_if_errors
@@ -77,62 +78,111 @@ ynh_app_setting_delete --app=$app --key=unprotected_regex
 
 if [ -d /usr/local/radicale ]
 then
-	mkdir -p /opt/yunohost
-	mv /usr/local/radicale /opt/yunohost/
-fi
-
-if [ -z "$version" ]
-then
-	# Retrieve the version number in the manifest file.
-	version=$(ynh_app_upstream_version)
-	ynh_app_setting_set --app=$app --key=version --value="$version"
+    mkdir -p /opt/yunohost
+    mv /usr/local/radicale /opt/yunohost/
 fi
 
 # Fix infcloud as a boolean
 if [ "$infcloud" = "Yes" ]; then
-	ynh_app_setting_set --app=$app --key=infcloud --value=1
-	infcloud=1
+    ynh_app_setting_set --app=$app --key=infcloud --value=1
+    infcloud=1
 elif [ "$infcloud" = "No" ]; then
-	ynh_app_setting_set --app=$app --key=infcloud --value=0
-	infcloud=0
-fi
-
-# If overwrite_logging doesn't exist, create it
-if [ -z "$overwrite_logging" ]; then
-	overwrite_logging=1
-	ynh_app_setting_set --app=$app --key=overwrite_logging --value=$overwrite_logging
+    ynh_app_setting_set --app=$app --key=infcloud --value=0
+    infcloud=0
 fi
 
 # If overwrite_config doesn't exist, create it
 if [ -z "$overwrite_config" ]; then
-	overwrite_config=1
-	ynh_app_setting_set --app=$app --key=overwrite_config --value=$overwrite_config
+    overwrite_config=1
+    ynh_app_setting_set --app=$app --key=overwrite_config --value=$overwrite_config
 fi
 
 # If overwrite_infcloud doesn't exist, create it
 if [ -z "$overwrite_infcloud" ]; then
-	overwrite_infcloud=1
-	ynh_app_setting_set --app=$app --key=overwrite_infcloud --value=$overwrite_infcloud
+    overwrite_infcloud=1
+    ynh_app_setting_set --app=$app --key=overwrite_infcloud --value=$overwrite_infcloud
 fi
 
 # If overwrite_nginx doesn't exist, create it
 if [ -z "$overwrite_nginx" ]; then
-	overwrite_nginx=1
-	ynh_app_setting_set --app=$app --key=overwrite_nginx --value=$overwrite_nginx
+    overwrite_nginx=1
+    ynh_app_setting_set --app=$app --key=overwrite_nginx --value=$overwrite_nginx
+fi
+
+# If overwrite_systemd doesn't exist, create it
+if [ -z "$overwrite_systemd" ]; then
+    overwrite_systemd=1
+    ynh_app_setting_set --app=$app --key=overwrite_systemd --value=$overwrite_systemd
 fi
 
 # If overwrite_phpfpm doesn't exist, create it
 if [ -z "$overwrite_phpfpm" ]; then
-	overwrite_phpfpm=1
-	ynh_app_setting_set --app=$app --key=overwrite_phpfpm --value=$overwrite_phpfpm
+    overwrite_phpfpm=1
+    ynh_app_setting_set --app=$app --key=overwrite_phpfpm --value=$overwrite_phpfpm
 fi
 
 # Cleaning legacy permissions
 if ynh_legacy_permissions_exists; then
-	ynh_legacy_permissions_delete_all
+    ynh_legacy_permissions_delete_all
 
-	ynh_app_setting_delete --app=$app --key=is_public
+    ynh_app_setting_delete --app=$app --key=is_public
 fi
+
+# If path_url still contains infcloud, then radicale_path doesn't exist
+if [[ "$path_url" =~ "/infcloud" ]]; then
+    path_url="${path_url%/*}"
+    ynh_app_setting_set --app=$app --key=path --value=$path_url
+fi
+
+# Migrate to v2
+if ynh_compare_current_package_version --comparison le --version 1.1.6~ynh6
+then
+    ynh_print_warn --message="Migration to radicale v2+..."
+    # Force nginx upgrade
+    overwrite_nginx=1
+    # Force systemd upgrade
+    overwrite_systemd=1
+    # Force config upgrade
+    overwrite_config=1
+    # Migrate collections to v2 format
+    # Init a new temporary virtualenv
+    virtualenv -p python3 /opt/yunohost/radicale_v1_temp
+    # Install a v1 version
+    /opt/yunohost/radicale_v1_temp/bin/pip install radicale==1.1.* python-ldap
+    # Force the migration of calendars
+    if ! ynh_exec_warn /opt/yunohost/radicale_v1_temp/bin/python3 -m radicale --export-storage "$final_path/collections_new"
+    then
+        # Clean up if it fails to prevent further failures
+        ynh_secure_remove --file="/opt/yunohost/radicale_v1_temp"
+        ynh_secure_remove --file="$final_path/collections_new"
+    fi
+    # Backup the old collection
+    mv "$final_path/collections" "$final_path/collections_v1"
+    # And replace by the new one
+    mv "$final_path/collections_new" "$final_path/collections"
+    # Find a free port
+    port=$(ynh_find_port --port=5232)
+    ynh_app_setting_set --app=$app --key=port --value=$port
+
+    ## Cleanup...
+    ynh_secure_remove --file="$final_path/default_collections"
+    ynh_secure_remove --file="$final_path/collections.props"
+    # Remove the temporary virtualenv
+    ynh_secure_remove --file="/opt/yunohost/radicale_v1_temp"
+    # Remove uwsgi config
+    ynh_secure_remove --file="$final_path/radicale.wsgi"
+    ynh_secure_remove --file="/etc/uwsgi/apps-enabled/radicale.ini"
+    ynh_secure_remove --file="/etc/uwsgi/apps-available/radicale.ini"
+    ynh_systemd_action --service_name=uwsgi --action="restart"
+
+    # Set permissions
+    if [ $infcloud -eq 1 ]
+    then
+        ynh_permission_create --permission="infcloud" --url="${path_url%/}/infcloud" --allowed="$admin" --show_tile=true
+    fi
+    ynh_permission_update --permission="main" --add="visitors" --show_tile=false
+fi
+
 
 #=================================================
 # CREATE DEDICATED USER
@@ -148,30 +198,20 @@ ynh_system_user_create --username=$app --home_dir="$final_path"
 
 if [ "$upgrade_type" == "UPGRADE_APP" ]
 then
-	ynh_script_progression --message="Upgrading source files..."
+    ynh_script_progression --message="Upgrading source files..."
 
-	# Copy files to the right place
-	mkdir -p $final_path/collections
-
-	# Copy files to the right place
-	cp ../conf/radicale.wsgi $final_path
-	
-	# Copy extra files
-	cp -a ../sources/extra_files_radicale/. "$final_path"
-	
-	if [ $infcloud -eq 1 ]
-	then
-		# Download and uncompress the source into final_path
-		ynh_setup_source --dest_dir="$final_path/infcloud" --keep="config.js"
-	fi
+    # Copy files to the right place
+    mkdir -p $final_path/collections
+    
+    if [ $infcloud -eq 1 ]
+    then
+        # Download and uncompress the source into final_path
+        ynh_setup_source --dest_dir="$final_path/infcloud" --keep="config.js"
+    fi
 fi
 
-chmod 750 "$final_path"
-chmod -R o-rwx "$final_path"
+chmod 750 -R "$final_path"
 chown -R $app:www-data "$final_path"
-
-chmod 666 -R $final_path/default_collections
-chmod 777 $final_path/default_collections $final_path/default_collections/USER
 
 #=================================================
 # NGINX CONFIGURATION
@@ -180,16 +220,16 @@ chmod 777 $final_path/default_collections $final_path/default_collections/USER
 # Overwrite the NGINX configuration only if it's allowed
 if [ $overwrite_nginx -eq 1 ]
 then
-	ynh_script_progression --message="Upgrading NGINX web server configuration..."
+    ynh_script_progression --message="Upgrading NGINX web server configuration..."
 
-	# Create a dedicated NGINX config
-	ynh_add_nginx_config
-	if [ $infcloud -eq 1 ]
-	then
-		# Add InfCloud in NGINX config
-		ynh_replace_string --match_string="#INFCLOUD#" --replace_string="" --target_file="/etc/nginx/conf.d/$domain.d/$app.conf"
-	fi
-	ynh_store_file_checksum --file="/etc/nginx/conf.d/$domain.d/$app.conf"
+    # Create a dedicated NGINX config
+    ynh_add_nginx_config
+    if [ $infcloud -eq 1 ]
+    then
+        # Add InfCloud in NGINX config
+        ynh_replace_string --match_string="#INFCLOUD#" --replace_string="" --target_file="/etc/nginx/conf.d/$domain.d/$app.conf"
+    fi
+    ynh_store_file_checksum --file="/etc/nginx/conf.d/$domain.d/$app.conf"
 fi
 
 #=================================================
@@ -206,15 +246,15 @@ ynh_install_app_dependencies $pkg_dependencies
 if [ $infcloud -eq 1 ]
 then
 
-	# Overwrite the php-fpm configuration only if it's allowed
-	if [ $overwrite_phpfpm -eq 1 ]
-	then
-		ynh_script_progression --message="Upgrading PHP-FPM configuration..."
+    # Overwrite the php-fpm configuration only if it's allowed
+    if [ $overwrite_phpfpm -eq 1 ]
+    then
+        ynh_script_progression --message="Upgrading PHP-FPM configuration..."
 
-		# Create a dedicated PHP-FPM config
-		ynh_add_fpm_config
-		phpversion=$(ynh_app_setting_get --app=$app --key=phpversion)
-	fi
+        # Create a dedicated PHP-FPM config
+        ynh_add_fpm_config
+        phpversion=$(ynh_app_setting_get --app=$app --key=phpversion)
+    fi
 fi
 
 #=================================================
@@ -225,18 +265,28 @@ fi
 
 if [ "$upgrade_type" == "UPGRADE_APP" ]
 then
-	ynh_script_progression --message="Upgrade Radicale in its virtualenv"
-	# Upgrade pip packages
-	ynh_secure_remove --file="/opt/yunohost/$app"
-	virtualenv /opt/yunohost/$app
-	version=$(ynh_app_setting_get $app version $version)
-	bash -c "source /opt/yunohost/radicale/bin/activate && pip install radicale==$version python-ldap"
+    ynh_script_progression --message="Upgrade Radicale in its virtualenv"
+    # Upgrade pip packages
+    ynh_secure_remove --file="/opt/yunohost/$app"
+    virtualenv -p python3 /opt/yunohost/$app
+    version=$(ynh_app_upstream_version)
+    ynh_app_setting_set --app=$app --key=version --value="$version"
+    /opt/yunohost/$app/bin/python3 -m pip install radicale==$version passlib bcrypt
 
-	# regex.py file is patched to fix the awful commit e807c3d35bea9cfcfcacac83b1b17d748ea15a39 that stop the reading of "rights" file after the first match.
-	mv "$final_path/regex.py" /opt/yunohost/$app/lib/python*/site-packages/radicale/rights/regex.py
+    # Add LDAP plugin
+#     (cd /opt/yunohost/$app
+#     set +u; source bin/activate
+# #     git clone https://github.com/marcoh00/radicale-auth-ldap
+#     git clone https://github.com/cloudron-io/radicale-auth-ldap
+#     cd radicale-auth-ldap
+#     python3 -m pip install .)
+
+    # Use htpasswd instead of ldap
+    touch /etc/radicale/users
 fi
 
 chown radicale: -R /opt/yunohost/$app
+
 find /opt/yunohost/$app/ -type d -exec chmod 2755 {} \;
 find /opt/yunohost/$app/ -type f -exec chmod g+r,o+r {} \;
 
@@ -245,16 +295,10 @@ find /opt/yunohost/$app/ -type f -exec chmod g+r,o+r {} \;
 #=================================================
 ynh_script_progression --message="Reconfigure Radicale"
 
-# Overwrite the logging config file only if it's allowed
-if [ $overwrite_logging -eq 1 ]
-then
-	ynh_add_config --template="../conf/logging" --destination="/etc/$app/logging"
-fi
-
 # Overwrite the config file only if it's allowed
 if [ $overwrite_config -eq 1 ]
 then
-	ynh_add_config --template="../conf/config" --destination="/etc/$app/config"
+    ynh_add_config --template="../conf/config" --destination="/etc/$app/config"
 fi
 
 chmod 755 /etc/$app/
@@ -263,85 +307,71 @@ chmod 644 /etc/$app/*
 # Overwrite the InfCloud config file only if it's allowed
 if [ $infcloud -eq 1 ]
 then
-	if [ $overwrite_infcloud -eq 1 ]
-	then
-		# InfCloud configuration
-		# Set language
-		case "$language" in
-			"Czech") language="cs_CZ"
-			;;
-			"Danish") language="da_DK"
-			;;
-			"German") language="de_DE"
-			;;
-			"English/US") language="en_US"
-			;;
-			"Spanish") language="es_ES"
-			;;
-			"French") language="fr_FR"
-			;;
-			"Italian") language="it_IT"
-			;;
-			"Japan") language="ja_JP"
-			;;
-			"Hungarian") language="hu_HU"
-			;;
-			"Dutch") language="nl_NL"
-			;;
-			"Slovak") language="sk_SK"
-			;;
-			"Turkish") language="tr_TR"
-			;;
-			"Russian") language="ru_RU"
-			;;
-			"Ukrainian") language="uk_UA"
-			;;
-			"Chinese") language="zh_CN"
-			;;
-		esac
-		ynh_app_setting_set --app=$app --key=language --value=$language
-		timezone=$(cat /etc/timezone)
-		ynh_add_config --template="../conf/config.js" --destination="$final_path/infcloud/config.js"
+    if [ $overwrite_infcloud -eq 1 ]
+    then
+        # InfCloud configuration
+        # Set language
+        case "$language" in
+            "Czech") language="cs_CZ"
+            ;;
+            "Danish") language="da_DK"
+            ;;
+            "German") language="de_DE"
+            ;;
+            "English/US") language="en_US"
+            ;;
+            "Spanish") language="es_ES"
+            ;;
+            "French") language="fr_FR"
+            ;;
+            "Italian") language="it_IT"
+            ;;
+            "Japan") language="ja_JP"
+            ;;
+            "Hungarian") language="hu_HU"
+            ;;
+            "Dutch") language="nl_NL"
+            ;;
+            "Slovak") language="sk_SK"
+            ;;
+            "Turkish") language="tr_TR"
+            ;;
+            "Russian") language="ru_RU"
+            ;;
+            "Ukrainian") language="uk_UA"
+            ;;
+            "Chinese") language="zh_CN"
+            ;;
+        esac
+        ynh_app_setting_set --app=$app --key=language --value=$language
+        timezone=$(cat /etc/timezone)
+        ynh_add_config --template="../conf/config.js" --destination="$final_path/infcloud/config.js"
 
-		# Optional parameters from config-panel feature
-		if [ -n "$firstdayofweek" ]; then
-			ynh_replace_string --match_string="\(^var globalDatepickerFirstDayOfWeek=\).*" --replace_string="\1$firstdayofweek;" --target_file="$final_path/infcloud/config.js"
-		fi
-		if [ -n "$activeview" ]; then
-			ynh_replace_string --match_string="\(^var globalActiveView=\).*" --replace_string="\1\'$activeview\';" --target_file="$final_path/infcloud/config.js"
-		fi
-		if [ -n "$openformmode" ]; then
-			ynh_replace_string --match_string="\(^var globalOpenFormMode=\).*" --replace_string="\1\'$openformmode\';" --target_file="$final_path/infcloud/config.js"
-		fi
-		if [ -n "$startofbusiness" ]; then
-			ynh_replace_string --match_string="\(^var globalCalendarStartOfBusiness=\).*" --replace_string="\1$startofbusiness;" --target_file="$final_path/infcloud/config.js"
-		fi
-		if [ -n "$endofbusiness" ]; then
-			ynh_replace_string --match_string="\(^var globalCalendarEndOfBusiness=\).*" --replace_string="\1$endofbusiness;" --target_file="$final_path/infcloud/config.js"
-		fi
-		if [ -n "$defaulteventduration" ]; then
-			ynh_replace_string --match_string="\(^var globalDefaultEventDuration=\).*" --replace_string="\1$defaulteventduration;" --target_file="$final_path/infcloud/config.js"
-		fi
-		# Recalculate and store the checksum of the file for the next upgrade.
-		ynh_store_file_checksum --file="$final_path/infcloud/config.js"
-		chmod 440 "$final_path/infcloud/config.js"
-		chown $app:www-data "$final_path/infcloud/config.js"
-	fi
+        # Optional parameters from config-panel feature
+        if [ -n "$firstdayofweek" ]; then
+            ynh_replace_string --match_string="\(^var globalDatepickerFirstDayOfWeek=\).*" --replace_string="\1$firstdayofweek;" --target_file="$final_path/infcloud/config.js"
+        fi
+        if [ -n "$activeview" ]; then
+            ynh_replace_string --match_string="\(^var globalActiveView=\).*" --replace_string="\1\'$activeview\';" --target_file="$final_path/infcloud/config.js"
+        fi
+        if [ -n "$openformmode" ]; then
+            ynh_replace_string --match_string="\(^var globalOpenFormMode=\).*" --replace_string="\1\'$openformmode\';" --target_file="$final_path/infcloud/config.js"
+        fi
+        if [ -n "$startofbusiness" ]; then
+            ynh_replace_string --match_string="\(^var globalCalendarStartOfBusiness=\).*" --replace_string="\1$startofbusiness;" --target_file="$final_path/infcloud/config.js"
+        fi
+        if [ -n "$endofbusiness" ]; then
+            ynh_replace_string --match_string="\(^var globalCalendarEndOfBusiness=\).*" --replace_string="\1$endofbusiness;" --target_file="$final_path/infcloud/config.js"
+        fi
+        if [ -n "$defaulteventduration" ]; then
+            ynh_replace_string --match_string="\(^var globalDefaultEventDuration=\).*" --replace_string="\1$defaulteventduration;" --target_file="$final_path/infcloud/config.js"
+        fi
+        # Recalculate and store the checksum of the file for the next upgrade.
+        ynh_store_file_checksum --file="$final_path/infcloud/config.js"
+        chmod 440 "$final_path/infcloud/config.js"
+        chown $app:www-data "$final_path/infcloud/config.js"
+    fi
 fi
-
-#=================================================
-# CONFIGURE UWSGI FOR RADICALE
-#=================================================
-
-cp ../conf/radicale.ini /etc/uwsgi/apps-available/
-
-#=================================================
-# PREPARE THE HOOKS
-#=================================================
-
-# Modify the hooks for create user collections and to remove them.
-ynh_replace_string --match_string="__FINALPATH__" --replace_string="$final_path" --target_file="../hooks/post_user_create"
-ynh_replace_string --match_string="__FINALPATH__" --replace_string="$final_path" --target_file="../hooks/post_user_delete"
 
 #=================================================
 # GENERIC FINALIZATION
@@ -358,18 +388,32 @@ chown radicale -R /var/log/$app
 ynh_use_logrotate --non-append
 
 #=================================================
+# SETUP SYSTEMD
+#=================================================
+ynh_script_progression --message="Upgrading systemd configuration..." --weight=2
+
+# Overwrite the systemd configuration only if it's allowed
+if [ $overwrite_systemd -eq 1 ]
+then
+    ynh_replace_string --match_string="__APP__" --replace_string="$app" --target_file="../conf/systemd.service"
+    ynh_replace_string --match_string="__FINALPATH__" --replace_string="$final_path" --target_file="../conf/systemd.service"
+    ynh_add_systemd_config
+fi
+
+#=================================================
 # INTEGRATE SERVICE IN YUNOHOST
 #=================================================
 ynh_script_progression --message="Integrating service in YunoHost..."
 
-yunohost service add $app --log="/var/log/uwsgi/app/radicale.log"
+yunohost service add $app --log="/var/log/$app"
 
 #=================================================
 # START SYSTEMD SERVICE
 #=================================================
 ynh_script_progression --message="Starting a systemd service..."
 
-ynh_systemd_action --service_name=uwsgi --action="restart"
+# ynh_systemd_action --service_name=uwsgi --action="restart"
+ynh_systemd_action --service_name=$app --action="restart"
 
 #=================================================
 # RELOAD NGINX
@@ -397,15 +441,14 @@ ynh_app_changelog || true
 
 if [ $infcloud -eq 1 ]
 then
-	infcloud_config="
+    infcloud_config="
 InfCloud has its own config file, at $final_path/infcloud/config.js
 "
 else
-	infcloud_config=""
+    infcloud_config=""
 fi
 
 echo "Use the file /etc/radicale/config to change the main configuration of radicale.
-The file /etc/radicale/logging to change the level of logging.
 And the file /etc/radicale/rights to edit the way the calendars will be shared.
 $infcloud_config
 You can configure this app easily by using the experimental __URL_TAG1__config-panel feature__URL_TAG2__$admin_panel/config-panel__URL_TAG3__.
