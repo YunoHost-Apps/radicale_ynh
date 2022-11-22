@@ -1,7 +1,0 @@
-#!/bin/bash
-
-user=$1
-final_path=__FINALPATH__
-
-sudo cp -a $final_path/default_collections/USER $final_path/collections/$user
-sudo cp -a $final_path/default_collections/USER.props $final_path/collections/$user.props

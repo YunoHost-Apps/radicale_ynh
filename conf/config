@@ -15,41 +15,29 @@
 # IPv4 syntax: address:port
 # IPv6 syntax: [address]:port
 # For example: 0.0.0.0:9999, [::]:9999
-# IPv6 adresses are configured to only allow IPv6 connections
-#hosts = 0.0.0.0:5232
+hosts = localhost:__PORT__
 
-# Daemon flag
-#daemon = False
+# Max parallel connections
+#max_connections = 8
 
-# File storing the PID in daemon mode
-#pid =
+# Max size of request body (bytes)
+#max_content_length = 100000000
+
+# Socket timeout (seconds)
+#timeout = 30
 
 # SSL flag, enable HTTPS protocol
 #ssl = False
 
 # SSL certificate path
-#certificate = /etc/apache2/ssl/server.crt
+#certificate = /etc/ssl/radicale.cert.pem
 
 # SSL private key
-#key = /etc/apache2/ssl/server.key
+#key = /etc/ssl/radicale.key.pem
 
-# SSL Protocol used. See python's ssl module for available values
-#protocol = PROTOCOL_SSLv23
-
-# Ciphers available. See python's ssl module for available ciphers
-#ciphers =
-
-# Reverse DNS to resolve client address in logs
-dns_lookup = True
-
-# Root URL of Radicale (starting and ending with a slash)
-base_prefix = __PATH__
-
-# Possibility to allow URLs cleaned by a HTTP server, without the base_prefix
-#can_skip_base_prefix = False
-
-# Message displayed in the client when a password is needed
-#realm = Radicale - Password Required
+# CA certificate for validating clients. This can be used to secure
+# TCP traffic between Radicale and a reverse proxy
+#certificate_authority =
 
 
 [encoding]
@@ -61,89 +49,63 @@ request = utf-8
 stock = utf-8
 
 
-[well-known]
-
-# Path where /.well-known/caldav/ is redirected
-#caldav = '/%(user)s/caldav/'
-
-# Path where /.well-known/carddav/ is redirected
-#carddav = '/%(user)s/carddav/'
-
-
 [auth]
 
 # Authentication method
-# Value: None | htpasswd | IMAP | LDAP | PAM | courier | http | remote_user | custom
-type = LDAP
-
-# Custom authentication handler
-#custom_handler =
+# Value: none | htpasswd | remote_user | http_x_remote_user
+#type = none
+type = htpasswd
 
 # Htpasswd filename
-#htpasswd_filename = /etc/radicale/users
+htpasswd_filename = /etc/radicale/users
 
 # Htpasswd encryption method
-# Value: plain | sha1 | ssha | crypt
-#htpasswd_encryption = crypt
+# Value: plain | bcrypt | md5
+# bcrypt requires the installation of radicale[bcrypt].
+htpasswd_encryption = bcrypt
+
+# Incorrect authentication delay (seconds)
+#delay = 1
+
+# Message displayed in the client when a password is needed
+#realm = Radicale - Password Required
+
+# LDAP doesn't work for now...
+# type = radicale_auth_ldap
 
 # LDAP server URL, with protocol and port
-ldap_url = ldap://localhost:389/
+# ldap_url = ldap://localhost:389/
 
 # LDAP base path
-ldap_base = ou=users,dc=yunohost,dc=org
+# ldap_base = ou=users,dc=yunohost,dc=org
 
 # LDAP login attribute
-ldap_attribute = uid
+# ldap_attribute = uid
 
 # LDAP filter string
 # placed as X in a query of the form (&(...)X)
 # example: (objectCategory=Person)(objectClass=User)(memberOf=cn=calenderusers,ou=users,dc=example,dc=org)
-# leave empty if no additional filter is needed
-ldap_filter =
+# ldap_filter = 
 
 # LDAP dn for initial login, used if LDAP server does not allow anonymous searches
 # Leave empty if searches are anonymous
-#ldap_binddn =
+# ldap_binddn = 
 
 # LDAP password for initial login, used with ldap_binddn
-#ldap_password =
+# ldap_password = 
 
 # LDAP scope of the search
-ldap_scope = OneLevel
+# ldap_scope = OneLevel
 
-# IMAP Configuration
-#imap_hostname = localhost
-#imap_port = 143
-#imap_ssl = False
-
-# PAM group user should be member of
-#pam_group_membership =
-
-# Path to the Courier Authdaemon socket
-#courier_socket =
-
-# HTTP authentication request URL endpoint
-#http_url =
-# POST parameter to use for username
-#http_user_parameter =
-# POST parameter to use for password
-#http_password_parameter =
-
-
-[git]
-
-# Git default options
-#committer = Radicale <radicale@example.com>
-
+# LDAP extended option
+# If the server is samba, ldap_support_extended is should be no
+# ldap_support_extended = yes
 
 [rights]
 
 # Rights backend
-# Value: None | authenticated | owner_only | owner_write | from_file | custom
-type = from_file
-
-# Custom rights handler
-#custom_handler =
+# Value: none | authenticated | owner_only | owner_write | from_file
+#type = owner_only
 
 # File for rights management from_file
 file = /etc/radicale/rights
@@ -152,37 +114,35 @@ file = /etc/radicale/rights
 [storage]
 
 # Storage backend
-# -------
-# WARNING: ONLY "filesystem" IS DOCUMENTED AND TESTED,
-#          OTHER BACKENDS ARE NOT READY FOR PRODUCTION.
-# -------
-# Value: filesystem | multifilesystem | database | custom
-type = filesystem
-
-# Custom storage handler
-#custom_handler =
+# Value: multifilesystem | multifilesystem_nolock
+#type = multifilesystem
 
 # Folder for storing local collections, created if not present
 filesystem_folder = __FINALPATH__/collections
 
-# Database URL for SQLAlchemy
-# dialect+driver://user:password@host/dbname[?key=value..]
-# For example: sqlite:///var/db/radicale.db, postgresql://user:password@localhost/radicale
-# See http://docs.sqlalchemy.org/en/rel_0_8/core/engines.html#sqlalchemy.create_engine
-#database_url =
+# Delete sync token that are older (seconds)
+#max_sync_token_age = 2592000
+
+# Command that is run after changes to storage
+# Example: ([ -d .git ] || git init) && git add -A && (git diff --cached --quiet || git commit -m "Changes by "%(user)s)
+#hook =
+
+
+[web]
+
+# Web interface backend
+# Value: none | internal
+#type = internal
 
 
 [logging]
 
-# Logging configuration file
-# If no config is given, simple information is printed on the standard output
-# For more information about the syntax of the configuration file, see:
-# http://docs.python.org/library/logging.config.html
-config = /etc/radicale/logging
-# Set the default logging level to debug
-debug = False
-# Store all environment variables (including those set in the shell)
-full_environment = False
+# Threshold for the logger
+# Value: debug | info | warning | error | critical
+#level = warning
+
+# Don't include passwords in logs
+#mask_passwords = True
 
 
 [headers]
@@ -192,3 +152,10 @@ Access-Control-Allow-Origin = *
 Access-Control-Allow-Methods = GET, POST, OPTIONS, PROPFIND, PROPPATCH, REPORT, PUT, MOVE, DELETE, LOCK, UNLOCK
 Access-Control-Allow-Headers = User-Agent, Authorization, Content-type, Depth, If-match, If-None-Match, Lock-Token, Timeout, Destination, Overwrite, X-clie$
 Access-Control-Expose-Headers = Etag
+
+#type = LDAP
+#ldap_url = ldap://localhost:389/
+#ldap_base = ou=users,dc=yunohost,dc=org
+#ldap_attribute = uid
+#ldap_filter =
+#ldap_scope = OneLevel

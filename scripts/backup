@@ -71,7 +71,12 @@ ynh_backup --src_path="/etc/logrotate.d/$app"
 # BACKUP SYSTEMD
 #=================================================
 
-ynh_backup --src_path="/etc/uwsgi/apps-available/radicale.ini"
+if [ -e "/etc/uwsgi/apps-available/radicale.ini" ]
+then
+    ynh_backup --src_path="/etc/uwsgi/apps-available/radicale.ini"
+else
+    ynh_backup --src_path="/etc/systemd/system/$app.service"
+fi
 
 #=================================================
 # BACKUP VARIOUS FILES
