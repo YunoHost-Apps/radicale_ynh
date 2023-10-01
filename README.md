@@ -5,7 +5,8 @@ It shall NOT be edited by hand.
 
 # Radicale for YunoHost
 
-[![Integration level](https://dash.yunohost.org/integration/radicale.svg)](https://dash.yunohost.org/appci/app/radicale) ![](https://ci-apps.yunohost.org/ci/badges/radicale.status.svg) ![](https://ci-apps.yunohost.org/ci/badges/radicale.maintain.svg)  
+[![Integration level](https://dash.yunohost.org/integration/radicale.svg)](https://dash.yunohost.org/appci/app/radicale) ![Working status](https://ci-apps.yunohost.org/ci/badges/radicale.status.svg) ![Maintenance status](https://ci-apps.yunohost.org/ci/badges/radicale.maintain.svg)
+
 [![Install Radicale with YunoHost](https://install-app.yunohost.org/install-with-yunohost.svg)](https://install-app.yunohost.org/?app=radicale)
 
 *[Lire ce readme en français.](./README_fr.md)*
@@ -19,9 +20,6 @@ Radicale is a small but powerful CalDAV (calendars, todo-lists) and CardDAV (con
 
 
 **Shipped version:** 1.1.6~ynh6
-
-
-
 ## Disclaimers / important information
 
 ## Configuration
@@ -46,21 +44,21 @@ Supported, with LDAP and SSO only with radicale, not for InfCloud.
 
 ## Documentation and resources
 
-* Official app website: http://radicale.org
-* Official admin documentation: https://github.com/Kozea/Radicale/blob/website/pages/user_documentation.rst
-* Upstream app code repository: https://github.com/Kozea/Radicale
-* YunoHost documentation for this app: https://yunohost.org/app_radicale
-* Report a bug: https://github.com/YunoHost-Apps/radicale_ynh/issues
+* Official app website: <http://radicale.org>
+* Official admin documentation: <https://github.com/Kozea/Radicale/blob/website/pages/user_documentation.rst>
+* Upstream app code repository: <https://github.com/Kozea/Radicale>
+* Report a bug: <https://github.com/YunoHost-Apps/radicale_ynh/issues>
 
 ## Developer info
 
 Please send your pull request to the [testing branch](https://github.com/YunoHost-Apps/radicale_ynh/tree/testing).
 
 To try the testing branch, please proceed like that.
-```
+
+``` bash
 sudo yunohost app install https://github.com/YunoHost-Apps/radicale_ynh/tree/testing --debug
 or
 sudo yunohost app upgrade radicale -u https://github.com/YunoHost-Apps/radicale_ynh/tree/testing --debug
 ```
 
-**More info regarding app packaging:** https://yunohost.org/packaging_apps
+**More info regarding app packaging:** <https://yunohost.org/packaging_apps>
