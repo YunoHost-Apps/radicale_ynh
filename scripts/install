@@ -13,23 +13,23 @@ source /usr/share/yunohost/helpers
 # MANAGE SCRIPT FAILURE
 #=================================================
 
-ynh_clean_setup () {
+#REMOVEME? ynh_clean_setup () {
 	ynh_clean_check_starting
 }
 # Exit if an error occurs during the execution of the script
-ynh_abort_if_errors
+#REMOVEME? ynh_abort_if_errors
 
 #=================================================
 # RETRIEVE ARGUMENTS FROM THE MANIFEST
 #=================================================
 
-domain=$YNH_APP_ARG_DOMAIN
-path_url=$YNH_APP_ARG_PATH
-language=$YNH_APP_ARG_LANGUAGE
-admin=$YNH_APP_ARG_ADMIN
-infcloud=$YNH_APP_ARG_INFCLOUD
+#REMOVEME? domain=$YNH_APP_ARG_DOMAIN
+#REMOVEME? path=$YNH_APP_ARG_PATH
+#REMOVEME? language=$YNH_APP_ARG_LANGUAGE
+#REMOVEME? admin=$YNH_APP_ARG_ADMIN
+#REMOVEME? infcloud=$YNH_APP_ARG_INFCLOUD
 
-app=$YNH_APP_INSTANCE_NAME
+#REMOVEME? app=$YNH_APP_INSTANCE_NAME
 
 # Retrieve the version number in the manifest file.
 version=$(ynh_app_upstream_version)
@@ -37,22 +37,22 @@ version=$(ynh_app_upstream_version)
 #=================================================
 # CHECK IF THE APP CAN BE INSTALLED WITH THESE ARGS
 #=================================================
-ynh_script_progression --message="Validating installation parameters..."
+#REMOVEME? ynh_script_progression --message="Validating installation parameters..."
 
-final_path=/var/www/$app
-test ! -e "$final_path" || ynh_die --message="This path already contains a folder"
+#REMOVEME? install_dir=/var/www/$app
+#REMOVEME? test ! -e "$install_dir" || ynh_die --message="This path already contains a folder"
 
 # Register (book) web path
-ynh_webpath_register --app=$app --domain=$domain --path_url=$path_url
+#REMOVEME? ynh_webpath_register --app=$app --domain=$domain --path=$path
 
 #=================================================
 # STORE SETTINGS FROM MANIFEST
 #=================================================
-ynh_script_progression --message="Storing installation settings..."
+#REMOVEME? ynh_script_progression --message="Storing installation settings..."
 
-ynh_app_setting_set --app=$app --key=domain --value=$domain
-ynh_app_setting_set --app=$app --key=path --value=$path_url
-ynh_app_setting_set --app=$app --key=admin --value=$admin
+#REMOVEME? ynh_app_setting_set --app=$app --key=domain --value=$domain
+#REMOVEME? ynh_app_setting_set --app=$app --key=path --value=$path
+#REMOVEME? ynh_app_setting_set --app=$app --key=admin --value=$admin
 ynh_app_setting_set --app=$app --key=infcloud --value=$infcloud
 ynh_app_setting_set --app=$app --key=version --value=$version
 
@@ -61,53 +61,53 @@ ynh_app_setting_set --app=$app --key=overwrite_config --value="1"
 ynh_app_setting_set --app=$app --key=overwrite_infcloud --value="1"
 ynh_app_setting_set --app=$app --key=overwrite_nginx --value="1"
 ynh_app_setting_set --app=$app --key=overwrite_phpfpm --value="1"
-ynh_app_setting_set --app=$app --key=admin_mail_html --value="1"
+#REMOVEME? ynh_app_setting_set --app=$app --key=admin_mail_html --value="1"
 
 #=================================================
 # STANDARD MODIFICATIONS
 #=================================================
 # INSTALL DEPENDENCIES
 #=================================================
-ynh_script_progression --message="Installing dependencies..."
+#REMOVEME? ynh_script_progression --message="Installing dependencies..."
 
-ynh_install_app_dependencies $pkg_dependencies
+#REMOVEME? ynh_install_app_dependencies $pkg_dependencies
 
 #=================================================
 # CREATE DEDICATED USER
 #=================================================
-ynh_script_progression --message="Configuring system user..."
+#REMOVEME? ynh_script_progression --message="Configuring system user..."
 
 # Create a system user
-ynh_system_user_create --username=$app --home_dir="$final_path"
+#REMOVEME? ynh_system_user_create --username=$app --home_dir="$install_dir"
 
 #=================================================
 # DOWNLOAD, CHECK AND UNPACK SOURCE
 #=================================================
 ynh_script_progression --message="Setting up source files..."
 
-ynh_app_setting_set --app=$app --key=final_path --value=$final_path
+#REMOVEME? ynh_app_setting_set --app=$app --key=install_dir --value=$install_dir
 # Create the directory and set the path in the config
-mkdir -p "$final_path/collections"
+mkdir -p "$install_dir/collections"
 
 # Copy files to the right place
-cp ../conf/radicale.wsgi $final_path
+cp ../conf/radicale.wsgi $install_dir
 
 # Copy extra files
-cp -a ../sources/extra_files_radicale/. "$final_path"
+cp -a ../sources/extra_files_radicale/. "$install_dir"
 
 if [ $infcloud -eq 1 ]
 then
-	# Download and uncompress the source into final_path
-	ynh_setup_source --dest_dir="$final_path/infcloud"
+	# Download and uncompress the source into install_dir
+	ynh_setup_source --dest_dir="$install_dir/infcloud"
 fi
 
-chmod 750 "$final_path"
-chmod -R o-rwx "$final_path"
-chown -R $app:www-data "$final_path"
+chmod 750 "$install_dir"
+chmod -R o-rwx "$install_dir"
+chown -R $app:www-data "$install_dir"
 
 # Set default permissions as radicale do.
-chmod 666 -R $final_path/default_collections
-chmod 777 $final_path/default_collections $final_path/default_collections/USER
+chmod 666 -R $install_dir/default_collections
+chmod 777 $install_dir/default_collections $install_dir/default_collections/USER
 
 #=================================================
 # NGINX CONFIGURATION
@@ -134,7 +134,7 @@ then
 
 	# Create a dedicated PHP-FPM config
 	ynh_add_fpm_config
-	phpversion=$(ynh_app_setting_get --app=$app --key=phpversion)
+#REMOVEME? 	phpversion=$(ynh_app_setting_get --app=$app --key=phpversion)
 fi
 
 #=================================================
@@ -146,11 +146,11 @@ ynh_script_progression --message="Install Radicale in a virtualenv"
 
 # Init virtualenv
 virtualenv /opt/yunohost/$app
-version=$(ynh_app_setting_get --app=$app --key=version)
+#REMOVEME? version=$(ynh_app_setting_get --app=$app --key=version)
 /opt/yunohost/$app/bin/pip install radicale==$version python-ldap
 
 # regex.py file is patched to fix the awful commit e807c3d35bea9cfcfcacac83b1b17d748ea15a39 that stop the reading of "rights" file after the first match.
-mv "$final_path/regex.py" /opt/yunohost/$app/lib/python*/site-packages/radicale/rights/regex.py
+mv "$install_dir/regex.py" /opt/yunohost/$app/lib/python*/site-packages/radicale/rights/regex.py
 
 # useradd radicale -d /opt/yunohost/$app
 chown radicale: -R /opt/yunohost/$app
@@ -212,10 +212,10 @@ then
 	esac
 	ynh_app_setting_set --app=$app --key=language --value=$language
 	timezone=$(cat /etc/timezone)
-	ynh_add_config --template="../conf/config.js" --destination="$final_path/infcloud/config.js"
+	ynh_add_config --template="../conf/config.js" --destination="$install_dir/infcloud/config.js"
 
-	chmod 440 "$final_path/infcloud/config.js"
-	chown $app:www-data "$final_path/infcloud/config.js"
+	chmod 440 "$install_dir/infcloud/config.js"
+	chown $app:www-data "$install_dir/infcloud/config.js"
 fi
 
 #=================================================
@@ -226,8 +226,8 @@ ynh_script_progression --message="Generate calendars and address books for all u
 # Create default calendars and address books for each users
 while read user
 do
-		cp -a $final_path/default_collections/USER $final_path/collections/$user
-		cp -a $final_path/default_collections/USER.props $final_path/collections/$user.props
+		cp -a $install_dir/default_collections/USER $install_dir/collections/$user
+		cp -a $install_dir/default_collections/USER.props $install_dir/collections/$user.props
 # List all users and remove the space after username
 done <<< "$(yunohost user list | grep username | cut -d ":" -f 2 | cut -c 2-)"
 
@@ -236,8 +236,8 @@ done <<< "$(yunohost user list | grep username | cut -d ":" -f 2 | cut -c 2-)"
 #=================================================
 
 # Modify the hooks for create user collections and to remove them.
-ynh_replace_string --match_string="__FINALPATH__" --replace_string="$final_path" --target_file="../hooks/post_user_create"
-ynh_replace_string --match_string="__FINALPATH__" --replace_string="$final_path" --target_file="../hooks/post_user_delete"
+ynh_replace_string --match_string="__INSTALL_DIR__" --replace_string="$install_dir" --target_file="../hooks/post_user_create"
+ynh_replace_string --match_string="__INSTALL_DIR__" --replace_string="$install_dir" --target_file="../hooks/post_user_delete"
 
 #=================================================
 # SETUP SYSTEMD
@@ -279,18 +279,18 @@ ynh_systemd_action --service_name=uwsgi --action="restart"
 #=================================================
 # SETUP SSOWAT
 #=================================================
-ynh_script_progression --message="Configuring permissions..."
+#REMOVEME? ynh_script_progression --message="Configuring permissions..."
 
 if [ $infcloud -eq 1 ]
 then
 	# Add /infcloud to the path of radicale to access it from the portal
 	# Replace radicale by InfCloud into YunoHost portal
-	ynh_app_setting_set --app=$app --key=path --value="${path_url%/}/infcloud"
+#REMOVEME? 	ynh_app_setting_set --app=$app --key=path --value="${path%/}/infcloud"
 	# Protect InfCloud access
 	ynh_app_setting_set --app=$app --key=protected_uris --value="/"
 	domain_regex=$(echo "$domain" | sed 's@-@.@g')
 	# Radicale is always accessible (For access to ressources)
-	ynh_app_setting_set --app=$app --key=skipped_regex --value="$domain_regex$path_url"
+#REMOVEME? 	ynh_app_setting_set --app=$app --key=skipped_regex --value="$domain_regex$path"
 else
 	# If only radicale is installed
 	# Radicale is always accessible (For access to ressources)
@@ -300,9 +300,9 @@ fi
 #=================================================
 # RELOAD NGINX
 #=================================================
-ynh_script_progression --message="Reloading NGINX web server..."
+#REMOVEME? ynh_script_progression --message="Reloading NGINX web server..."
 
-ynh_systemd_action --service_name=nginx --action=reload
+#REMOVEME? ynh_systemd_action --service_name=nginx --action=reload
 
 #=================================================
 # SEND A README FOR THE ADMIN
@@ -314,7 +314,7 @@ admin_panel="https://$(grep portal_domain /etc/ssowat/conf.json | cut -d'"' -f4)
 if [ $infcloud -eq 1 ]
 then
 	infcloud_config="
-InfCloud has its own config file, at $final_path/infcloud/config.js
+InfCloud has its own config file, at $install_dir/infcloud/config.js
 "
 else
 	infcloud_config=""

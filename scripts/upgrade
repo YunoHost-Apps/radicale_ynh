@@ -12,30 +12,30 @@ source /usr/share/yunohost/helpers
 #=================================================
 # LOAD SETTINGS
 #=================================================
-ynh_script_progression --message="Loading installation settings..."
+#REMOVEME? ynh_script_progression --message="Loading installation settings..."
 
-app=$YNH_APP_INSTANCE_NAME
+#REMOVEME? app=$YNH_APP_INSTANCE_NAME
 
-domain=$(ynh_app_setting_get --app=$app --key=domain)
-path_url=$(ynh_app_setting_get --app=$app --key=path)
-language=$(ynh_app_setting_get --app=$app --key=language)
-admin=$(ynh_app_setting_get --app=$app --key=admin)
-final_path=$(ynh_app_setting_get --app=$app --key=final_path)
-infcloud=$(ynh_app_setting_get --app=$app --key=infcloud)
-version=$(ynh_app_setting_get --app=$app --key=version)
-overwrite_logging=$(ynh_app_setting_get --app=$app --key=overwrite_logging)
-overwrite_config=$(ynh_app_setting_get --app=$app --key=overwrite_config)
-overwrite_infcloud=$(ynh_app_setting_get --app=$app --key=overwrite_infcloud)
-overwrite_nginx=$(ynh_app_setting_get --app=$app --key=overwrite_nginx)
-overwrite_phpfpm=$(ynh_app_setting_get --app=$app --key=overwrite_phpfpm)
+#REMOVEME? domain=$(ynh_app_setting_get --app=$app --key=domain)
+#REMOVEME? path=$(ynh_app_setting_get --app=$app --key=path)
+#REMOVEME? language=$(ynh_app_setting_get --app=$app --key=language)
+#REMOVEME? admin=$(ynh_app_setting_get --app=$app --key=admin)
+#REMOVEME? #REMOVEME? install_dir=$(ynh_app_setting_get --app=$app --key=install_dir)
+#REMOVEME? infcloud=$(ynh_app_setting_get --app=$app --key=infcloud)
+#REMOVEME? version=$(ynh_app_setting_get --app=$app --key=version)
+#REMOVEME? overwrite_logging=$(ynh_app_setting_get --app=$app --key=overwrite_logging)
+#REMOVEME? overwrite_config=$(ynh_app_setting_get --app=$app --key=overwrite_config)
+#REMOVEME? overwrite_infcloud=$(ynh_app_setting_get --app=$app --key=overwrite_infcloud)
+#REMOVEME? overwrite_nginx=$(ynh_app_setting_get --app=$app --key=overwrite_nginx)
+#REMOVEME? overwrite_phpfpm=$(ynh_app_setting_get --app=$app --key=overwrite_phpfpm)
 
 # Optional parameters from config-panel feature
-firstdayofweek=$(ynh_app_setting_get --app=$app --key=firstdayofweek)
-activeview=$(ynh_app_setting_get --app=$app --key=activeview)
-openformmode=$(ynh_app_setting_get --app=$app --key=openformmode)
-startofbusiness=$(ynh_app_setting_get --app=$app --key=startofbusiness)
-endofbusiness=$(ynh_app_setting_get --app=$app --key=endofbusiness)
-defaulteventduration=$(ynh_app_setting_get --app=$app --key=defaulteventduration)
+#REMOVEME? firstdayofweek=$(ynh_app_setting_get --app=$app --key=firstdayofweek)
+#REMOVEME? activeview=$(ynh_app_setting_get --app=$app --key=activeview)
+#REMOVEME? openformmode=$(ynh_app_setting_get --app=$app --key=openformmode)
+#REMOVEME? startofbusiness=$(ynh_app_setting_get --app=$app --key=startofbusiness)
+#REMOVEME? endofbusiness=$(ynh_app_setting_get --app=$app --key=endofbusiness)
+#REMOVEME? defaulteventduration=$(ynh_app_setting_get --app=$app --key=defaulteventduration)
 
 #=================================================
 # CHECK VERSION
@@ -47,17 +47,17 @@ upgrade_type=$(ynh_check_app_version_changed)
 #=================================================
 # BACKUP BEFORE UPGRADE THEN ACTIVE TRAP
 #=================================================
-ynh_script_progression --message="Backing up the app before upgrading (may take a while)..."
+#REMOVEME? ynh_script_progression --message="Backing up the app before upgrading (may take a while)..."
 
 # Backup the current version of the app
-ynh_backup_before_upgrade
-ynh_clean_setup () {
+#REMOVEME? ynh_backup_before_upgrade
+#REMOVEME? ynh_clean_setup () {
 	ynh_clean_check_starting
 	# Restore it if the upgrade fails
-	ynh_restore_upgradebackup
+#REMOVEME? 	ynh_restore_upgradebackup
 }
 # Exit if an error occurs during the execution of the script
-ynh_abort_if_errors
+#REMOVEME? ynh_abort_if_errors
 
 #=================================================
 # ACTIVATE MAINTENANCE MODE
@@ -128,8 +128,8 @@ if [ -z "$overwrite_phpfpm" ]; then
 fi
 
 # Cleaning legacy permissions
-if ynh_legacy_permissions_exists; then
-	ynh_legacy_permissions_delete_all
+#REMOVEME? if ynh_legacy_permissions_exists; then
+#REMOVEME? 	ynh_legacy_permissions_delete_all
 
 	ynh_app_setting_delete --app=$app --key=is_public
 fi
@@ -137,10 +137,10 @@ fi
 #=================================================
 # CREATE DEDICATED USER
 #=================================================
-ynh_script_progression --message="Making sure dedicated system user exists..."
+#REMOVEME? ynh_script_progression --message="Making sure dedicated system user exists..."
 
 # Create a dedicated user (if not existing)
-ynh_system_user_create --username=$app --home_dir="$final_path"
+#REMOVEME? ynh_system_user_create --username=$app --home_dir="$install_dir"
 
 #=================================================
 # DOWNLOAD, CHECK AND UNPACK SOURCE
@@ -151,27 +151,27 @@ then
 	ynh_script_progression --message="Upgrading source files..."
 
 	# Copy files to the right place
-	mkdir -p $final_path/collections
+	mkdir -p $install_dir/collections
 
 	# Copy files to the right place
-	cp ../conf/radicale.wsgi $final_path
+	cp ../conf/radicale.wsgi $install_dir
 	
 	# Copy extra files
-	cp -a ../sources/extra_files_radicale/. "$final_path"
+	cp -a ../sources/extra_files_radicale/. "$install_dir"
 	
 	if [ $infcloud -eq 1 ]
 	then
-		# Download and uncompress the source into final_path
-		ynh_setup_source --dest_dir="$final_path/infcloud" --keep="config.js"
+		# Download and uncompress the source into install_dir
+		ynh_setup_source --dest_dir="$install_dir/infcloud" --keep="config.js"
 	fi
 fi
 
-chmod 750 "$final_path"
-chmod -R o-rwx "$final_path"
-chown -R $app:www-data "$final_path"
+chmod 750 "$install_dir"
+chmod -R o-rwx "$install_dir"
+chown -R $app:www-data "$install_dir"
 
-chmod 666 -R $final_path/default_collections
-chmod 777 $final_path/default_collections $final_path/default_collections/USER
+chmod 666 -R $install_dir/default_collections
+chmod 777 $install_dir/default_collections $install_dir/default_collections/USER
 
 #=================================================
 # NGINX CONFIGURATION
@@ -195,9 +195,9 @@ fi
 #=================================================
 # UPGRADE DEPENDENCIES
 #=================================================
-ynh_script_progression --message="Upgrading dependencies..."
+#REMOVEME? ynh_script_progression --message="Upgrading dependencies..."
 
-ynh_install_app_dependencies $pkg_dependencies
+#REMOVEME? ynh_install_app_dependencies $pkg_dependencies
 
 #=================================================
 # PHP-FPM CONFIGURATION
@@ -213,7 +213,7 @@ then
 
 		# Create a dedicated PHP-FPM config
 		ynh_add_fpm_config
-		phpversion=$(ynh_app_setting_get --app=$app --key=phpversion)
+#REMOVEME? 		phpversion=$(ynh_app_setting_get --app=$app --key=phpversion)
 	fi
 fi
 
@@ -229,11 +229,11 @@ then
 	# Upgrade pip packages
 	ynh_secure_remove --file="/opt/yunohost/$app"
 	virtualenv /opt/yunohost/$app
-	version=$(ynh_app_setting_get $app version $version)
+#REMOVEME? 	version=$(ynh_app_setting_get $app version $version)
 	bash -c "source /opt/yunohost/radicale/bin/activate && pip install radicale==$version python-ldap"
 
 	# regex.py file is patched to fix the awful commit e807c3d35bea9cfcfcacac83b1b17d748ea15a39 that stop the reading of "rights" file after the first match.
-	mv "$final_path/regex.py" /opt/yunohost/$app/lib/python*/site-packages/radicale/rights/regex.py
+	mv "$install_dir/regex.py" /opt/yunohost/$app/lib/python*/site-packages/radicale/rights/regex.py
 fi
 
 chown radicale: -R /opt/yunohost/$app
@@ -301,31 +301,31 @@ then
 		esac
 		ynh_app_setting_set --app=$app --key=language --value=$language
 		timezone=$(cat /etc/timezone)
-		ynh_add_config --template="../conf/config.js" --destination="$final_path/infcloud/config.js"
+		ynh_add_config --template="../conf/config.js" --destination="$install_dir/infcloud/config.js"
 
 		# Optional parameters from config-panel feature
 		if [ -n "$firstdayofweek" ]; then
-			ynh_replace_string --match_string="\(^var globalDatepickerFirstDayOfWeek=\).*" --replace_string="\1$firstdayofweek;" --target_file="$final_path/infcloud/config.js"
+			ynh_replace_string --match_string="\(^var globalDatepickerFirstDayOfWeek=\).*" --replace_string="\1$firstdayofweek;" --target_file="$install_dir/infcloud/config.js"
 		fi
 		if [ -n "$activeview" ]; then
-			ynh_replace_string --match_string="\(^var globalActiveView=\).*" --replace_string="\1\'$activeview\';" --target_file="$final_path/infcloud/config.js"
+			ynh_replace_string --match_string="\(^var globalActiveView=\).*" --replace_string="\1\'$activeview\';" --target_file="$install_dir/infcloud/config.js"
 		fi
 		if [ -n "$openformmode" ]; then
-			ynh_replace_string --match_string="\(^var globalOpenFormMode=\).*" --replace_string="\1\'$openformmode\';" --target_file="$final_path/infcloud/config.js"
+			ynh_replace_string --match_string="\(^var globalOpenFormMode=\).*" --replace_string="\1\'$openformmode\';" --target_file="$install_dir/infcloud/config.js"
 		fi
 		if [ -n "$startofbusiness" ]; then
-			ynh_replace_string --match_string="\(^var globalCalendarStartOfBusiness=\).*" --replace_string="\1$startofbusiness;" --target_file="$final_path/infcloud/config.js"
+			ynh_replace_string --match_string="\(^var globalCalendarStartOfBusiness=\).*" --replace_string="\1$startofbusiness;" --target_file="$install_dir/infcloud/config.js"
 		fi
 		if [ -n "$endofbusiness" ]; then
-			ynh_replace_string --match_string="\(^var globalCalendarEndOfBusiness=\).*" --replace_string="\1$endofbusiness;" --target_file="$final_path/infcloud/config.js"
+			ynh_replace_string --match_string="\(^var globalCalendarEndOfBusiness=\).*" --replace_string="\1$endofbusiness;" --target_file="$install_dir/infcloud/config.js"
 		fi
 		if [ -n "$defaulteventduration" ]; then
-			ynh_replace_string --match_string="\(^var globalDefaultEventDuration=\).*" --replace_string="\1$defaulteventduration;" --target_file="$final_path/infcloud/config.js"
+			ynh_replace_string --match_string="\(^var globalDefaultEventDuration=\).*" --replace_string="\1$defaulteventduration;" --target_file="$install_dir/infcloud/config.js"
 		fi
 		# Recalculate and store the checksum of the file for the next upgrade.
-		ynh_store_file_checksum --file="$final_path/infcloud/config.js"
-		chmod 440 "$final_path/infcloud/config.js"
-		chown $app:www-data "$final_path/infcloud/config.js"
+		ynh_store_file_checksum --file="$install_dir/infcloud/config.js"
+		chmod 440 "$install_dir/infcloud/config.js"
+		chown $app:www-data "$install_dir/infcloud/config.js"
 	fi
 fi
 
@@ -340,8 +340,8 @@ cp ../conf/radicale.ini /etc/uwsgi/apps-available/
 #=================================================
 
 # Modify the hooks for create user collections and to remove them.
-ynh_replace_string --match_string="__FINALPATH__" --replace_string="$final_path" --target_file="../hooks/post_user_create"
-ynh_replace_string --match_string="__FINALPATH__" --replace_string="$final_path" --target_file="../hooks/post_user_delete"
+ynh_replace_string --match_string="__INSTALL_DIR__" --replace_string="$install_dir" --target_file="../hooks/post_user_create"
+ynh_replace_string --match_string="__INSTALL_DIR__" --replace_string="$install_dir" --target_file="../hooks/post_user_delete"
 
 #=================================================
 # GENERIC FINALIZATION
@@ -374,9 +374,9 @@ ynh_systemd_action --service_name=uwsgi --action="restart"
 #=================================================
 # RELOAD NGINX
 #=================================================
-ynh_script_progression --message="Reloading NGINX web server..."
+#REMOVEME? ynh_script_progression --message="Reloading NGINX web server..."
 
-ynh_systemd_action --service_name=nginx --action=reload
+#REMOVEME? ynh_systemd_action --service_name=nginx --action=reload
 
 #=================================================
 # DEACTIVE MAINTENANCE MODE
@@ -398,7 +398,7 @@ ynh_app_changelog || true
 if [ $infcloud -eq 1 ]
 then
 	infcloud_config="
-InfCloud has its own config file, at $final_path/infcloud/config.js
+InfCloud has its own config file, at $install_dir/infcloud/config.js
 "
 else
 	infcloud_config=""

@@ -163,7 +163,7 @@ type = filesystem
 #custom_handler =
 
 # Folder for storing local collections, created if not present
-filesystem_folder = __FINALPATH__/collections
+filesystem_folder = __INSTALL_DIR__/collections
 
 # Database URL for SQLAlchemy
 # dialect+driver://user:password@host/dbname[?key=value..]
