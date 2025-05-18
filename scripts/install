@@ -211,7 +211,7 @@ then
 		;;
 	esac
 	ynh_app_setting_set --app=$app --key=language --value=$language
-	timezone=$(cat /etc/timezone)
+	timezone=$(timedatectl show --value --property=Timezone)
 	ynh_add_config --template="../conf/config.js" --destination="$final_path/infcloud/config.js"
 
 	chmod 440 "$final_path/infcloud/config.js"
