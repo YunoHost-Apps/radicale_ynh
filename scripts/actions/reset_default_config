@@ -98,7 +98,7 @@ then
 	ynh_replace_string "__PATH__" "${path_url%/}" "$config_file"
 	ynh_replace_string "__LANG__" "$language" "$config_file"
 	ynh_replace_string "__ADMIN__" "$admin" "$config_file"
-	ynh_replace_string "__TIMEZONE__" "$(cat /etc/timezone)" "$config_file"
+	ynh_replace_string "__TIMEZONE__" "$(timedatectl show --value --property=Timezone)" "$config_file"
 
 	# Optional parameters from config-panel feature
 	if [ -n "$firstdayofweek" ]; then

@@ -101,7 +101,7 @@ then
 	ynh_replace_string "__PATH__" "${path_url%/}" "$final_path/infcloud/config.js"
 	ynh_replace_string "__LANG__" "$language" "$final_path/infcloud/config.js"
 	ynh_replace_string "__ADMIN__" "$admin" "$final_path/infcloud/config.js"
-	ynh_replace_string "__TIMEZONE__" "$(cat /etc/timezone)" "$final_path/infcloud/config.js"
+	ynh_replace_string "__TIMEZONE__" "$(timedatectl show --value --property=Timezone)" "$final_path/infcloud/config.js"
 
 	# Optional parameters from config-panel feature
 	if [ -n "$firstdayofweek" ]; then
