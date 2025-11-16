@@ -212,9 +212,9 @@ ynh_use_logrotate
 #=================================================
 # INTEGRATE SERVICE IN YUNOHOST
 #=================================================
-ynh_script_progression --message="Integrating service in YunoHost..."
+#ynh_script_progression --message="Integrating service in YunoHost..."
 
-yunohost service add $app --log="/var/log/uwsgi/app/radicale.log" --name="Radicale"
+#yunohost service add $app --log="/var/log/uwsgi/app/radicale.log" --name="Radicale"
 
 #=================================================
 # START SYSTEMD SERVICE
