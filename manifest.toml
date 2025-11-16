@@ -72,4 +72,4 @@ ram.runtime = "50M"
     main.url = "/"
 
     [resources.apt]
-    packages = "python3-pip, python3-venv, python3-dev, libldap2-dev, libsasl2-dev, libssl-dev, uwsgi, uwsgi-plugin-python, php7.4-fpm"
+    packages = "python3-pip, python3-venv, python3-dev, libldap2-dev, libsasl2-dev, libssl-dev, uwsgi, uwsgi-plugin-python3, php7.4-fpm"
