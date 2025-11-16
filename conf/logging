@@ -34,7 +34,7 @@ formatter = simple
 # File handler
 class = FileHandler
 level = INFO
-args = ('/var/log/radicale/radicale.log',)
+args = ('/var/log/__APP__/radicale.log',)
 formatter = full
 
 
