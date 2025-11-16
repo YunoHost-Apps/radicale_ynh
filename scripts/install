@@ -192,7 +192,7 @@ ynh_replace_string --match_string="__INSTALL_DIR__" --replace_string="$install_d
 #=================================================
 ynh_script_progression --message="Configuring a systemd service..."
 
-ynh_add_config --template="../conf/radicale.ini" /etc/uwsgi/apps-available/$app.ini
+ynh_add_config --template="../conf/radicale.ini" --destination="/etc/uwsgi/apps-available/$app.ini"
 ln -s /etc/uwsgi/apps-available/$app.ini /etc/uwsgi/apps-enabled/
 
 #=================================================
