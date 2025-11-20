@@ -16,21 +16,6 @@ source /usr/share/yunohost/helpers
 # Retrieve the version number in the manifest file.
 version=$(ynh_app_upstream_version)
 
-
-#=================================================
-# STORE SETTINGS FROM MANIFEST
-#=================================================
-#REMOVEME? ynh_script_progression --message="Storing installation settings..."
-
-ynh_app_setting_set --app=$app --key=infcloud --value=$infcloud
-ynh_app_setting_set --app=$app --key=version --value=$version
-
-ynh_app_setting_set --app=$app --key=overwrite_logging --value="1"
-ynh_app_setting_set --app=$app --key=overwrite_config --value="1"
-ynh_app_setting_set --app=$app --key=overwrite_infcloud --value="1"
-ynh_app_setting_set --app=$app --key=overwrite_nginx --value="1"
-ynh_app_setting_set --app=$app --key=overwrite_phpfpm --value="1"
-
 #=================================================
 # DOWNLOAD, CHECK AND UNPACK SOURCE
 #=================================================

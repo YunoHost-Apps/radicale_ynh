@@ -12,30 +12,20 @@ source /usr/share/yunohost/helpers
 #=================================================
 # STANDARD REMOVE
 #=================================================
-# REMOVE SERVICE INTEGRATION IN YUNOHOST
-#=================================================
-
-# Remove the service from the list of services known by YunoHost (added from `yunohost service add`)
-if ynh_exec_warn_less yunohost service status $app >/dev/null
-then
-	ynh_script_progression --message="Removing $app service integration..."
-	yunohost service remove $app
-fi
-
-#=================================================
 # STOP AND REMOVE SERVICE
 #=================================================
 ynh_script_progression --message="Stopping and removing the systemd service..."
 
+ynh_systemd_action --action="stop" --service_name=uwsgi
+
 # Delete uwsgi configuration
-if [ -h "/etc/uwsgi/apps-enabled/radicale.ini" ]; then
+if [ -h "/etc/uwsgi/apps-enabled/$app.ini" ]; then
 	echo "Delete uwsgi config"
-	ynh_secure_remove --file="/etc/uwsgi/apps-enabled/radicale.ini"
+	ynh_secure_remove --file="/etc/uwsgi/apps-enabled/$app.ini"
 fi
 
-ynh_secure_remove --file="/etc/uwsgi/apps-available/radicale.ini"
+ynh_secure_remove --file="/etc/uwsgi/apps-available/$app.ini"
 
-ynh_systemd_action --action="restart" --service_name=uwsgi
 
 #=================================================
 # REMOVE LOGROTATE CONFIGURATION

@@ -85,6 +85,10 @@ if [ -z "$overwrite_phpfpm" ]; then
 fi
 
 
+if [ -z "$firstdayofweek:-"]; then
+	firstdayofweek="1"
+fi
+
 #=================================================
 # DOWNLOAD, CHECK AND UNPACK SOURCE
 #=================================================
@@ -162,7 +166,7 @@ if [ "$upgrade_type" == "UPGRADE_APP" ]
 then
 	ynh_script_progression --message="Upgrade Radicale in its virtualenv"
 	python3 -m venv $install_dir/radicale
-	$install_dir/radicale/bin/pip install radicale==$version python-ldap
+	$install_dir/radicale/bin/pip install -U radicale==$version python-ldap
 
 	# regex.py file is patched to fix the awful commit e807c3d35bea9cfcfcacac83b1b17d748ea15a39 that stop the reading of "rights" file after the first match.
 	# mv "$install_dir/regex.py" /opt/yunohost/$app/lib/python*/site-packages/radicale/rights/regex.py
@@ -238,27 +242,27 @@ then
 		timezone=$(cat /etc/timezone)
 		ynh_add_config --template="../conf/config.js" --destination="$install_dir/infcloud/config.js"
 
-		# Optional parameters from config-panel feature
-		if [ -n "$firstdayofweek" ]; then
-			ynh_replace_string --match_string="\(^var globalDatepickerFirstDayOfWeek=\).*" --replace_string="\1$firstdayofweek;" --target_file="$install_dir/infcloud/config.js"
-		fi
-		if [ -n "$activeview" ]; then
-			ynh_replace_string --match_string="\(^var globalActiveView=\).*" --replace_string="\1\'$activeview\';" --target_file="$install_dir/infcloud/config.js"
-		fi
-		if [ -n "$openformmode" ]; then
-			ynh_replace_string --match_string="\(^var globalOpenFormMode=\).*" --replace_string="\1\'$openformmode\';" --target_file="$install_dir/infcloud/config.js"
-		fi
-		if [ -n "$startofbusiness" ]; then
-			ynh_replace_string --match_string="\(^var globalCalendarStartOfBusiness=\).*" --replace_string="\1$startofbusiness;" --target_file="$install_dir/infcloud/config.js"
-		fi
-		if [ -n "$endofbusiness" ]; then
-			ynh_replace_string --match_string="\(^var globalCalendarEndOfBusiness=\).*" --replace_string="\1$endofbusiness;" --target_file="$install_dir/infcloud/config.js"
-		fi
-		if [ -n "$defaulteventduration" ]; then
-			ynh_replace_string --match_string="\(^var globalDefaultEventDuration=\).*" --replace_string="\1$defaulteventduration;" --target_file="$install_dir/infcloud/config.js"
-		fi
+		# # Optional parameters from config-panel feature
+		# if [ -n "$firstdayofweek" ]; then
+		# 	ynh_replace_string --match_string="\(^var globalDatepickerFirstDayOfWeek=\).*" --replace_string="\1$firstdayofweek;" --target_file="$install_dir/infcloud/config.js"
+		# fi
+		# if [ -n "$activeview" ]; then
+		# 	ynh_replace_string --match_string="\(^var globalActiveView=\).*" --replace_string="\1\'$activeview\';" --target_file="$install_dir/infcloud/config.js"
+		# fi
+		# if [ -n "$openformmode" ]; then
+		# 	ynh_replace_string --match_string="\(^var globalOpenFormMode=\).*" --replace_string="\1\'$openformmode\';" --target_file="$install_dir/infcloud/config.js"
+		# fi
+		# if [ -n "$startofbusiness" ]; then
+		# 	ynh_replace_string --match_string="\(^var globalCalendarStartOfBusiness=\).*" --replace_string="\1$startofbusiness;" --target_file="$install_dir/infcloud/config.js"
+		# fi
+		# if [ -n "$endofbusiness" ]; then
+		# 	ynh_replace_string --match_string="\(^var globalCalendarEndOfBusiness=\).*" --replace_string="\1$endofbusiness;" --target_file="$install_dir/infcloud/config.js"
+		# fi
+		# if [ -n "$defaulteventduration" ]; then
+		# 	ynh_replace_string --match_string="\(^var globalDefaultEventDuration=\).*" --replace_string="\1$defaulteventduration;" --target_file="$install_dir/infcloud/config.js"
+		# fi
 		# Recalculate and store the checksum of the file for the next upgrade.
-		ynh_store_file_checksum --file="$install_dir/infcloud/config.js"
+		# ynh_store_file_checksum --file="$install_dir/infcloud/config.js"
 		chmod 440 "$install_dir/infcloud/config.js"
 		chown $app:www-data "$install_dir/infcloud/config.js"
 	fi
