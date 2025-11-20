@@ -38,13 +38,6 @@ then
 	mv /usr/local/radicale /opt/yunohost/
 fi
 
-if [ -z "$version" ]
-then
-	# Retrieve the version number in the manifest file.
-	version=$(ynh_app_upstream_version)
-	ynh_app_setting_set --app=$app --key=version --value="$version"
-fi
-
 # Fix infcloud as a boolean
 if [ "$infcloud" = "Yes" ]; then
 	ynh_app_setting_set --app=$app --key=infcloud --value=1
@@ -55,43 +48,46 @@ elif [ "$infcloud" = "No" ]; then
 fi
 
 # If overwrite_logging doesn't exist, create it
-if [ -z "$overwrite_logging" ]; then
+if [ -z "${overwrite_logging:-}" ]; then
 	overwrite_logging=1
 	ynh_app_setting_set --app=$app --key=overwrite_logging --value=$overwrite_logging
 fi
 
 # If overwrite_config doesn't exist, create it
-if [ -z "$overwrite_config" ]; then
+if [ -z "${overwrite_config:-}" ]; then
 	overwrite_config=1
 	ynh_app_setting_set --app=$app --key=overwrite_config --value=$overwrite_config
 fi
 
 # If overwrite_infcloud doesn't exist, create it
-if [ -z "$overwrite_infcloud" ]; then
+if [ -z "${overwrite_infcloud:-}" ]; then
 	overwrite_infcloud=1
 	ynh_app_setting_set --app=$app --key=overwrite_infcloud --value=$overwrite_infcloud
 fi
 
 # If overwrite_nginx doesn't exist, create it
-if [ -z "$overwrite_nginx" ]; then
+if [ -z "${overwrite_nginx:-}" ]; then
 	overwrite_nginx=1
 	ynh_app_setting_set --app=$app --key=overwrite_nginx --value=$overwrite_nginx
 fi
 
 # If overwrite_phpfpm doesn't exist, create it
-if [ -z "$overwrite_phpfpm" ]; then
+if [ -z "${overwrite_phpfpm:-}" ]; then
 	overwrite_phpfpm=1
 	ynh_app_setting_set --app=$app --key=overwrite_phpfpm --value=$overwrite_phpfpm
 fi
 
 
-if [ -z "$firstdayofweek:-"]; then
+if [ -z "${firstdayofweek:-}"]; then
 	firstdayofweek="1"
 fi
 
 #=================================================
 # DOWNLOAD, CHECK AND UNPACK SOURCE
 #=================================================
+
+# Retrieve the version number in the manifest file.
+version=$(ynh_app_upstream_version)
 
 if [ "$upgrade_type" == "UPGRADE_APP" ]
 then
@@ -272,7 +268,7 @@ fi
 # CONFIGURE UWSGI FOR RADICALE
 #=================================================
 
-cp ../conf/radicale.ini /etc/uwsgi/apps-available/
+ynh_add_config --template="../conf/radicale.ini" --destination="/etc/uwsgi/apps-available/$app.ini"
 
 #=================================================
 # PREPARE THE HOOKS
@@ -301,7 +297,7 @@ ynh_use_logrotate --non-append
 #=================================================
 ynh_script_progression --message="Integrating service in YunoHost..."
 
-yunohost service add $app --log="/var/log/uwsgi/app/radicale.log"
+# yunohost service add $app --log="/var/log/uwsgi/app/radicale.log"
 
 #=================================================
 # START SYSTEMD SERVICE

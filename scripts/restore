@@ -13,9 +13,9 @@ source /usr/share/yunohost/helpers
 #=================================================
 # ACTIVATE MAINTENANCE MODE
 #=================================================
-ynh_script_progression --message="Activate maintenance mode"
+# ynh_script_progression --message="Activate maintenance mode"
 
-ynh_maintenance_mode_ON
+# ynh_maintenance_mode_ON
 
 #=================================================
 # STANDARD RESTORATION STEPS
@@ -45,10 +45,10 @@ chmod 750 "$install_dir"
 chmod -R o-rwx "$install_dir"
 chown -R $app:www-data "$install_dir"
 
-mkdir -p /opt/yunohost
-ynh_restore_file --origin_path="/opt/yunohost/$app"
+# mkdir -p /opt/yunohost
+# ynh_restore_file --origin_path="/opt/yunohost/$app"
 
-chown -R radicale: "/opt/yunohost/$app"
+# chown -R radicale: "/opt/yunohost/$app"
 
 
 #=================================================
@@ -129,9 +129,9 @@ ynh_systemd_action --service_name=nginx --action=reload
 #=================================================
 # DEACTIVE MAINTENANCE MODE
 #=================================================
-ynh_script_progression --message="Disable maintenance mode"
+# ynh_script_progression --message="Disable maintenance mode"
 
-ynh_maintenance_mode_OFF
+# ynh_maintenance_mode_OFF
 
 #=================================================
 # END OF SCRIPT
