@@ -38,13 +38,6 @@ then
 	mv /usr/local/radicale /opt/yunohost/
 fi
 
-if [ -z "${version:-}" ]
-then
-	# Retrieve the version number in the manifest file.
-	version=$(ynh_app_upstream_version)
-	ynh_app_setting_set --app=$app --key=version --value="$version"
-fi
-
 # Fix infcloud as a boolean
 if [ "$infcloud" = "Yes" ]; then
 	ynh_app_setting_set --app=$app --key=infcloud --value=1
@@ -92,6 +85,9 @@ fi
 #=================================================
 # DOWNLOAD, CHECK AND UNPACK SOURCE
 #=================================================
+
+# Retrieve the version number in the manifest file.
+version=$(ynh_app_upstream_version)
 
 if [ "$upgrade_type" == "UPGRADE_APP" ]
 then
