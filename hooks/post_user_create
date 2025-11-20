@@ -1,7 +1,9 @@
 #!/bin/bash
 
-user=$1
-final_path=__FINALPATH__
+source /usr/share/yunohost/helpers
 
-sudo cp -a $final_path/default_collections/USER $final_path/collections/$user
-sudo cp -a $final_path/default_collections/USER.props $final_path/collections/$user.props
+user=$1
+install_dir=$(ynh_app_setting_get --app=$app --key=install_dir)
+
+sudo cp -a $install_dir/default_collections/USER $install_dir/collections/$user
+sudo cp -a $install_dir/default_collections/USER.props $install_dir/collections/$user.props

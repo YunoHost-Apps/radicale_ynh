@@ -1,0 +1,17 @@
+#:schema https://raw.githubusercontent.com/YunoHost/apps/master/schemas/tests.v1.schema.json
+
+test_format = 1.0
+
+[default]
+
+    # ------------
+    # Tests to run
+    # ------------
+
+    [default.curl_tests]
+    home.path = "/"
+    home.expect_return_code = 401
+
+    logged_in.path = "/"
+    logged_in.logged_on_sso = true
+    logged_in.expect_return_code = 200
