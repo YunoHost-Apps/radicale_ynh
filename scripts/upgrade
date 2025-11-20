@@ -268,7 +268,7 @@ fi
 # CONFIGURE UWSGI FOR RADICALE
 #=================================================
 
-cp ../conf/radicale.ini /etc/uwsgi/apps-available/
+ynh_add_config --template="../conf/radicale.ini" --destination="/etc/uwsgi/apps-available/$app.ini"
 
 #=================================================
 # PREPARE THE HOOKS
@@ -297,7 +297,7 @@ ynh_use_logrotate --non-append
 #=================================================
 ynh_script_progression --message="Integrating service in YunoHost..."
 
-yunohost service add $app --log="/var/log/uwsgi/app/radicale.log"
+# yunohost service add $app --log="/var/log/uwsgi/app/radicale.log"
 
 #=================================================
 # START SYSTEMD SERVICE
