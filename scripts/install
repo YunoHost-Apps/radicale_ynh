@@ -1,6 +1,5 @@
 #!/bin/bash
 
-source _common.sh
 source /usr/share/yunohost/helpers
 
 #=================================================
@@ -59,8 +58,6 @@ fi
 
 if [ $infcloud -eq 1 ]
 then
-	ynh_script_progression "Configuring PHP-FPM..."
-
 	# Create a dedicated PHP-FPM config
 	ynh_config_add_phpfpm
 fi
@@ -101,41 +98,6 @@ chmod 755 /etc/$app/
 
 if [ $infcloud -eq 1 ]
 then
-	# InfCloud configuration
-	# Set language
-	case "$language" in
-		"Czech") language="cs_CZ"
-		;;
-		"Danish") language="da_DK"
-		;;
-		"German") language="de_DE"
-		;;
-		"English/US") language="en_US"
-		;;
-		"Spanish") language="es_ES"
-		;;
-		"French") language="fr_FR"
-		;;
-		"Italian") language="it_IT"
-		;;
-		"Japan") language="ja_JP"
-		;;
-		"Hungarian") language="hu_HU"
-		;;
-		"Dutch") language="nl_NL"
-		;;
-		"Slovak") language="sk_SK"
-		;;
-		"Turkish") language="tr_TR"
-		;;
-		"Russian") language="ru_RU"
-		;;
-		"Ukrainian") language="uk_UA"
-		;;
-		"Chinese") language="zh_CN"
-		;;
-	esac
-	ynh_app_setting_set --key=language --value=$language
 	timezone=$(cat /etc/timezone)
 	ynh_config_add --template="config.js" --destination="$install_dir/infcloud/config.js"
 

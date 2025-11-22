@@ -42,8 +42,8 @@ ram.runtime = "50M"
     ask.en = "Choose your interface language"
     ask.fr = "Choisissez la langue de l'interface"
     type = "select"
-    choices = ["Czech", "Danish", "German", "English/US", "Spanish", "French", "Italian", "Japan", "Hungarian", "Dutch", "Slovak", "Turkish", "Russian", "Ukrainian", "Chinese"]
-    default = "English/US"
+    choices = ["cs_CZ", "da_DK", "de_DE", "en_US", "es_ES", "fr_FR", "it_IT", "ja_JP", "hu_HU", "nl_NL", "sk_SK", "tr_TR", "ru_RU", "uk_UA", "zh_CN"]
+    default = "fr_FR"
 
     [install.admin]
     type = "user"
