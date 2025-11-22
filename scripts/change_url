@@ -1,6 +1,5 @@
 #!/bin/bash
 
-source _common.sh
 source /usr/share/yunohost/helpers
 
 #=================================================
@@ -13,6 +12,7 @@ ynh_config_change_url_nginx
 #=================================================
 # MODIFY CONFIG FILES
 #=================================================
+
 ynh_replace --match="^base_prefix = $old_path.*" --replace="base_prefix = ${new_path%/}/" --file="/etc/$app/config"
 
 if [ $infcloud -eq 1 ]; then
