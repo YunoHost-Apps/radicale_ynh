@@ -4,8 +4,6 @@ source _common.sh
 source /usr/share/yunohost/helpers
 
 #=================================================
-# STANDARD REMOVE
-#=================================================
 # STOP AND REMOVE SERVICE
 #=================================================
 ynh_script_progression "Stopping and removing the systemd service..."
@@ -21,35 +19,18 @@ fi
 ynh_safe_rm "/etc/uwsgi/apps-available/$app.ini"
 
 #=================================================
-# REMOVE LOGROTATE CONFIGURATION
+# REMOVE SYSTEM CONFIGURATIONS
 #=================================================
-ynh_script_progression "Removing logrotate configuration..."
+ynh_script_progression "Removing system configurations related to $app..."
 
 # Remove the app-specific logrotate config
 ynh_config_remove_logrotate
 
-#=================================================
-# REMOVE NGINX CONFIGURATION
-#=================================================
-ynh_script_progression "Removing NGINX web server configuration..."
-
 # Remove the dedicated NGINX config
 ynh_config_remove_nginx
 
-#=================================================
-# REMOVE PHP-FPM CONFIGURATION
-#=================================================
-ynh_script_progression "Removing PHP-FPM configuration..."
-
 # Remove the dedicated PHP-FPM config
 ynh_config_remove_phpfpm
-
-#=================================================
-# SPECIFIC REMOVE
-#=================================================
-# REMOVE VARIOUS FILES
-#=================================================
-ynh_script_progression "Removing various files..."
 
 # Remove a directory securely
 ynh_safe_rm "/etc/$app"

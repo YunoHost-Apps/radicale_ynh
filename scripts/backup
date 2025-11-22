@@ -11,16 +11,9 @@ ynh_print_info "Declaring files to be backed up..."
 #=================================================
 
 ynh_backup "$install_dir"
-# ynh_backup "/opt/yunohost/$app"
 
 #=================================================
-# BACKUP THE NGINX CONFIGURATION
-#=================================================
-
-ynh_backup "/etc/nginx/conf.d/$domain.d/$app.conf"
-
-#=================================================
-# BACKUP THE PHP-FPM CONFIGURATION
+# BACKUP SYSTEM CONFIGURATION
 #=================================================
 
 if [ $infcloud -eq 1 ]
@@ -28,17 +21,9 @@ then
 	ynh_backup "/etc/php/$php_version/fpm/pool.d/$app.conf"
 fi
 
-#=================================================
-# SPECIFIC BACKUP
-#=================================================
-# BACKUP LOGROTATE
-#=================================================
+ynh_backup "/etc/nginx/conf.d/$domain.d/$app.conf"
 
 ynh_backup "/etc/logrotate.d/$app"
-
-#=================================================
-# BACKUP SYSTEMD
-#=================================================
 
 ynh_backup "/etc/uwsgi/apps-available/radicale.ini"
 

@@ -12,8 +12,6 @@ source /usr/share/yunohost/helpers
 # ynh_maintenance_mode_ON
 
 #=================================================
-# STANDARD RESTORATION STEPS
-#=================================================
 # RESTORE THE NGINX CONFIGURATION
 #=================================================
 ynh_script_progression "Restoring the NGINX web server configuration..."
@@ -53,16 +51,6 @@ then
 
 	ynh_restore "/etc/php/$php_version/fpm/pool.d/$app.conf"
 fi
-
-#=================================================
-# SPECIFIC RESTORATION
-#=================================================
-# REINSTALL DEPENDENCIES
-#=================================================
-#REMOVEME? ynh_script_progression "Reinstalling dependencies..."
-
-# Define and install dependencies
-#REMOVEME? ynh_apt_install_dependencies $pkg_dependencies
 
 #=================================================
 # RESTORE VARIOUS FILES

@@ -18,22 +18,23 @@ admindoc = "https://github.com/Kozea/Radicale/blob/website/pages/user_documentat
 code = "https://github.com/Kozea/Radicale"
 
 [integration]
-yunohost = ">= 4.3.0"
+yunohost = ">= 12.1.17"
 helpers_version = "2.1"
 architectures = "all"
 multi_instance = false
+
 ldap = true
 sso = false
+
 disk = "50M"
 ram.build = "50M"
 ram.runtime = "50M"
 
+[install]
     [install.domain]
-    # this is a generic question - ask strings are automatically handled by Yunohost's core
     type = "domain"
 
     [install.path]
-    # this is a generic question - ask strings are automatically handled by Yunohost's core
     type = "path"
     default = "/radicale"
 
@@ -45,7 +46,6 @@ ram.runtime = "50M"
     default = "English/US"
 
     [install.admin]
-    # this is a generic question - ask strings are automatically handled by Yunohost's core
     type = "user"
 
     [install.infcloud]
@@ -54,7 +54,10 @@ ram.runtime = "50M"
     type = "boolean"
     default = true
 
+[resources]
+
     [resources.sources]
+
         [resources.sources.main]
         # dummy source for autoupdater
         url = "https://github.com/Kozea/Radicale/archive/refs/tags/1.1.7.tar.gz"
@@ -63,7 +66,6 @@ ram.runtime = "50M"
         [resources.sources.infcloud]
         url = "https://www.inf-it.com/InfCloud_0.13.1.zip"
         sha256 = "9fa95edd2dcc2b864a10b503ab9220895ea28d4c5541ab02117de1511d5464d4"
-
 
     [resources.system_user]
 
@@ -74,4 +76,4 @@ ram.runtime = "50M"
     main.url = "/"
 
     [resources.apt]
-    packages = "python3-pip, python3-venv, python3-dev, libldap2-dev, libsasl2-dev, libssl-dev, uwsgi, uwsgi-plugin-python3, php7.4-fpm"
+    packages = "python3-pip, python3-venv, python3-dev, libldap2-dev, libsasl2-dev, libssl-dev, uwsgi, uwsgi-plugin-python3, php8.4-fpm"

@@ -4,22 +4,12 @@ source _common.sh
 source /usr/share/yunohost/helpers
 
 #=================================================
-# ACTIVATE MAINTENANCE MODE
-#=================================================
-ynh_script_progression "Activate maintenance mode"
-path=$old_path
-domain=$old_domain
-ynh_maintenance_mode_ON
-
-#=================================================
 # MODIFY URL IN NGINX CONF
 #=================================================
 ynh_script_progression "Updating NGINX web server configuration..."
 
 ynh_config_change_url_nginx
 
-#=================================================
-# SPECIFIC MODIFICATIONS
 #=================================================
 # MODIFY CONFIG FILES
 #=================================================
@@ -36,14 +26,6 @@ ynh_script_progression "Starting $app's systemd service..."
 
 # Start a systemd service
 ynh_systemctl --service=uwsgi --action="restart"
-
-#=================================================
-# DEACTIVE MAINTENANCE MODE
-#=================================================
-ynh_script_progression "Disable maintenance mode"
-path=$old_path
-domain=$old_domain
-ynh_maintenance_mode_OFF
 
 #=================================================
 # END OF SCRIPT
