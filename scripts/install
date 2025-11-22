@@ -34,7 +34,7 @@ chmod 750 "$install_dir"
 chmod -R o-rwx "$install_dir"
 chown -R $app:www-data "$install_dir"
 
-# Set default permissions as radicale do.
+# Set default permissions as Radicale do.
 chmod 666 -R $install_dir/default_collections
 chmod 777 $install_dir/default_collections $install_dir/default_collections/USER
 
