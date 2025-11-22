@@ -1,15 +1,6 @@
 #!/bin/bash
 
-# Keep this path for calling _common.sh inside the execution's context of backup and restore scripts
-source ../settings/scripts/_common.sh
 source /usr/share/yunohost/helpers
-
-#=================================================
-# ACTIVATE MAINTENANCE MODE
-#=================================================
-# ynh_script_progression "Activate maintenance mode"
-
-# ynh_maintenance_mode_ON
 
 #=================================================
 # RESTORE THE NGINX CONFIGURATION
@@ -17,14 +8,6 @@ source /usr/share/yunohost/helpers
 ynh_script_progression "Restoring the NGINX web server configuration..."
 
 ynh_restore "/etc/nginx/conf.d/$domain.d/$app.conf"
-
-#=================================================
-# RECREATE THE DEDICATED USER
-#=================================================
-#REMOVEME? ynh_script_progression "Recreating the dedicated system user..."
-
-# Create the dedicated user (if not existing)
-#REMOVEME? ynh_system_user_create --username=$app --home_dir="$install_dir"
 
 #=================================================
 # RESTORE THE APP MAIN DIR
@@ -47,8 +30,6 @@ ynh_restore "$install_dir"
 
 if [ $infcloud -eq 1 ]
 then
-	ynh_script_progression "Restoring the PHP-FPM configuration..."
-
 	ynh_restore "/etc/php/$php_version/fpm/pool.d/$app.conf"
 fi
 
@@ -74,7 +55,7 @@ ynh_script_progression "Restoring the logrotate configuration..."
 
 mkdir -p /var/log/$app
 touch /var/log/$app/$app.log
-#REMOVEME? Assuming ynh_config_add_logrotate is called, the proper chmod/chowns are now already applied and it shouldn't be necessary to tweak perms | chown radicale -R /var/log/$app
+chown $app -R /var/log/$app
 
 ynh_restore "/etc/logrotate.d/$app"
 
@@ -103,13 +84,6 @@ then
 fi
 
 ynh_systemctl --service=nginx --action=reload
-
-#=================================================
-# DEACTIVE MAINTENANCE MODE
-#=================================================
-# ynh_script_progression "Disable maintenance mode"
-
-# ynh_maintenance_mode_OFF
 
 #=================================================
 # END OF SCRIPT

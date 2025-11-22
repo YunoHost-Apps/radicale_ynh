@@ -94,7 +94,7 @@ ynh_config_add --template="logging" --destination="/etc/$app/logging"
 ynh_config_add --template="rights" --destination="/etc/$app/rights"
 
 chmod 755 /etc/$app/
-#REMOVEME? Assuming the file is setup using ynh_config_add, the proper chmod/chowns are now already applied and it shouldn't be necessary to tweak perms | chmod 644 /etc/$app/*
+chmod 644 /etc/$app/*
 
 if [ $infcloud -eq 1 ]
 then

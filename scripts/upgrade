@@ -1,16 +1,8 @@
 #!/bin/bash
 
-source _common.sh
 source /usr/share/yunohost/helpers
 
 ynh_script_progression "Checking version..."
-
-#=================================================
-# ACTIVATE MAINTENANCE MODE
-#=================================================
-ynh_script_progression "Activate maintenance mode"
-
-ynh_maintenance_mode_ON
 
 #=================================================
 # ENSURE DOWNWARD COMPATIBILITY
@@ -35,39 +27,19 @@ elif [ "$infcloud" = "No" ]; then
 fi
 
 # If overwrite_logging doesn't exist, create it
-# FIXMEhelpers2.1: maybe replace with: ynh_app_setting_set_default --key=overwrite_logging --value=1
-if [ -z "${overwrite_logging:-}" ]; then
-	overwrite_logging=1
-	ynh_app_setting_set --key=overwrite_logging --value=$overwrite_logging
-fi
+ynh_app_setting_set_default --key=overwrite_logging --value=1
 
 # If overwrite_config doesn't exist, create it
-# FIXMEhelpers2.1: maybe replace with: ynh_app_setting_set_default --key=overwrite_config --value=1
-if [ -z "${overwrite_config:-}" ]; then
-	overwrite_config=1
-	ynh_app_setting_set --key=overwrite_config --value=$overwrite_config
-fi
+ynh_app_setting_set_default --key=overwrite_config --value=1
 
 # If overwrite_infcloud doesn't exist, create it
-# FIXMEhelpers2.1: maybe replace with: ynh_app_setting_set_default --key=overwrite_infcloud --value=1
-if [ -z "${overwrite_infcloud:-}" ]; then
-	overwrite_infcloud=1
-	ynh_app_setting_set --key=overwrite_infcloud --value=$overwrite_infcloud
-fi
+ynh_app_setting_set_default --key=overwrite_infcloud --value=1
 
 # If overwrite_nginx doesn't exist, create it
-# FIXMEhelpers2.1: maybe replace with: ynh_app_setting_set_default --key=overwrite_nginx --value=1
-if [ -z "${overwrite_nginx:-}" ]; then
-	overwrite_nginx=1
-	ynh_app_setting_set --key=overwrite_nginx --value=$overwrite_nginx
-fi
+ynh_app_setting_set_default --key=overwrite_nginx --value=1
 
 # If overwrite_phpfpm doesn't exist, create it
-# FIXMEhelpers2.1: maybe replace with: ynh_app_setting_set_default --key=overwrite_phpfpm --value=1
-if [ -z "${overwrite_phpfpm:-}" ]; then
-	overwrite_phpfpm=1
-	ynh_app_setting_set --key=overwrite_phpfpm --value=$overwrite_phpfpm
-fi
+ynh_app_setting_set_default --key=overwrite_phpfpm --value=1
 
 if [ -z "${firstdayofweek:-}"]; then
 	firstdayofweek="1"
@@ -80,30 +52,27 @@ fi
 # Retrieve the version number in the manifest file.
 version=$(ynh_app_upstream_version)
 
-# FIXME: this is still supported but the recommendation is now to *always* re-setup the app sources wether or not the upstream sources changed
-if ynh_app_upstream_version_changed
+
+ynh_script_progression "Upgrading source files..."
+
+# Copy files to the right place
+mkdir -p $install_dir/collections
+
+# Copy files to the right place
+cp ../conf/radicale.wsgi $install_dir
+
+# Copy extra files
+cp -a ../sources_radicale/. "$install_dir"
+
+if [ $infcloud -eq 1 ]
 then
-	ynh_script_progression "Upgrading source files..."
-
-	# Copy files to the right place
-	mkdir -p $install_dir/collections
-
-	# Copy files to the right place
-	cp ../conf/radicale.wsgi $install_dir
-
-	# Copy extra files
-	cp -a ../sources_radicale/. "$install_dir"
-
-	if [ $infcloud -eq 1 ]
-	then
-		# Download and uncompress the source into install_dir
-		ynh_setup_source --dest_dir="$install_dir/infcloud" --keep="config.js"
-	fi
+	# Download and uncompress the source into install_dir
+	ynh_setup_source --dest_dir="$install_dir/infcloud" --keep="config.js"
 fi
 
-#REMOVEME? Assuming the install dir is setup using ynh_setup_source, the proper chmod/chowns are now already applied and it shouldn't be necessary to tweak perms | chmod 750 "$install_dir"
-#REMOVEME? Assuming the install dir is setup using ynh_setup_source, the proper chmod/chowns are now already applied and it shouldn't be necessary to tweak perms | chmod -R o-rwx "$install_dir"
-#REMOVEME? Assuming the install dir is setup using ynh_setup_source, the proper chmod/chowns are now already applied and it shouldn't be necessary to tweak perms | chown -R $app:www-data "$install_dir"
+chmod 750 "$install_dir"
+chmod -R o-rwx "$install_dir"
+chown -R $app:www-data "$install_dir"
 chmod 666 -R $install_dir/default_collections
 chmod 777 $install_dir/default_collections $install_dir/default_collections/USER
 
@@ -132,12 +101,9 @@ fi
 
 if [ $infcloud -eq 1 ]
 then
-
 	# Overwrite the php-fpm configuration only if it's allowed
 	if [ $overwrite_phpfpm -eq 1 ]
 	then
-		ynh_script_progression "Upgrading PHP-FPM configuration..."
-
 		# Create a dedicated PHP-FPM config
 		ynh_config_add_phpfpm
 	fi
@@ -190,40 +156,6 @@ then
 	if [ $overwrite_infcloud -eq 1 ]
 	then
 		# InfCloud configuration
-		# Set language
-		case "$language" in
-			"Czech") language="cs_CZ"
-			;;
-			"Danish") language="da_DK"
-			;;
-			"German") language="de_DE"
-			;;
-			"English/US") language="en_US"
-			;;
-			"Spanish") language="es_ES"
-			;;
-			"French") language="fr_FR"
-			;;
-			"Italian") language="it_IT"
-			;;
-			"Japan") language="ja_JP"
-			;;
-			"Hungarian") language="hu_HU"
-			;;
-			"Dutch") language="nl_NL"
-			;;
-			"Slovak") language="sk_SK"
-			;;
-			"Turkish") language="tr_TR"
-			;;
-			"Russian") language="ru_RU"
-			;;
-			"Ukrainian") language="uk_UA"
-			;;
-			"Chinese") language="zh_CN"
-			;;
-		esac
-		ynh_app_setting_set --key=language --value=$language
 		timezone=$(cat /etc/timezone)
 		ynh_config_add --template="config.js" --destination="$install_dir/infcloud/config.js"
 
@@ -274,7 +206,7 @@ ynh_script_progression "Upgrading logrotate configuration..."
 
 mkdir -p /var/log/$app
 touch /var/log/$app/$app.log
-#REMOVEME? Assuming ynh_config_add_logrotate is called, the proper chmod/chowns are now already applied and it shouldn't be necessary to tweak perms | chown radicale -R /var/log/$app
+chown radicale -R /var/log/$app
 
 # Use logrotate to manage app-specific logfile(s)
 ynh_config_add_logrotate
@@ -292,13 +224,6 @@ ynh_script_progression "Integrating service in YunoHost..."
 ynh_script_progression "Starting $app's systemd service..."
 
 ynh_systemctl --service=uwsgi --action="restart"
-
-#=================================================
-# DEACTIVE MAINTENANCE MODE
-#=================================================
-ynh_script_progression "Disable maintenance mode"
-
-ynh_maintenance_mode_OFF
 
 #=================================================
 # END OF SCRIPT
