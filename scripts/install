@@ -8,6 +8,7 @@ source /usr/share/yunohost/helpers
 
 # Retrieve the version number in the manifest file.
 version=$(ynh_app_upstream_version)
+timezone=$(cat /etc/timezone)
 
 #=================================================
 # DOWNLOAD, CHECK AND UNPACK SOURCE
@@ -98,7 +99,6 @@ chmod 644 /etc/$app/*
 
 if [ $infcloud -eq 1 ]
 then
-	timezone=$(cat /etc/timezone)
 	ynh_config_add --template="config.js" --destination="$install_dir/infcloud/config.js"
 
 	chmod 440 "$install_dir/infcloud/config.js"
@@ -113,8 +113,9 @@ ynh_script_progression "Generate calendars and address books for all users"
 # Create default calendars and address books for each users
 while read user
 do
-		cp -a $install_dir/default_collections/USER $install_dir/collections/$user
-		cp -a $install_dir/default_collections/USER.props $install_dir/collections/$user.props
+	cp -a $install_dir/default_collections/USER $install_dir/collections/$user
+	cp -a $install_dir/default_collections/USER.props $install_dir/collections/$user.props
+
 # List all users and remove the space after username
 done <<< "$(yunohost user list | grep username | cut -d ":" -f 2 | cut -c 2-)"
 
@@ -123,8 +124,8 @@ done <<< "$(yunohost user list | grep username | cut -d ":" -f 2 | cut -c 2-)"
 #=================================================
 
 # Modify the hooks for create user collections and to remove them.
-ynh_replace --match="__INSTALL_DIR__" --replace="$install_dir" --file="../hooks/post_user_create"
-ynh_replace --match="__INSTALL_DIR__" --replace="$install_dir" --file="../hooks/post_user_delete"
+#ynh_replace --match="__INSTALL_DIR__" --replace="$install_dir" --file="../hooks/post_user_create"
+#ynh_replace --match="__INSTALL_DIR__" --replace="$install_dir" --file="../hooks/post_user_delete"
 
 #=================================================
 # SETUP SYSTEMD
