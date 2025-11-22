@@ -56,31 +56,19 @@ chmod 777 $install_dir/default_collections $install_dir/default_collections/USER
 # NGINX CONFIGURATION
 #=================================================
 
-# Overwrite the NGINX configuration only if it's allowed
-if [ $overwrite_nginx -eq 1 ]
-then
-	# Create a dedicated NGINX config
-	ynh_config_add_nginx
-	if [ $infcloud -eq 1 ]
-	then
-		# Add InfCloud in NGINX config
-		ynh_replace --match="#INFCLOUD#" --replace="" --file="/etc/nginx/conf.d/$domain.d/$app.conf"
-	fi
-	ynh_store_file_checksum "/etc/nginx/conf.d/$domain.d/$app.conf"
-fi
-
-#=================================================
-# PHP-FPM CONFIGURATION
-#=================================================
+# Create a dedicated NGINX config
+ynh_config_add_nginx
 
 if [ $infcloud -eq 1 ]
 then
+	# Add InfCloud in NGINX config
+	ynh_replace --match="#INFCLOUD#" --replace="" --file="/etc/nginx/conf.d/$domain.d/$app.conf"
+
 	# Overwrite the php-fpm configuration only if it's allowed
-	if [ $overwrite_phpfpm -eq 1 ]
-	then
-		ynh_config_add_phpfpm
-	fi
+	ynh_config_add_phpfpm
 fi
+
+ynh_store_file_checksum "/etc/nginx/conf.d/$domain.d/$app.conf"
 
 #=================================================
 # UPGRADE RADICALE IN ITS VIRTUALENV
@@ -104,17 +92,11 @@ find $install_dir/radicale/ -type f -exec chmod g+r,o+r {} \;
 #=================================================
 ynh_script_progression "Reconfigure Radicale"
 
-# Overwrite the logging config file only if it's allowed
-if [ $overwrite_logging -eq 1 ]
-then
-	ynh_config_add --template="logging" --destination="/etc/$app/logging"
-fi
+# Overwrite the logging config
+ynh_config_add --template="logging" --destination="/etc/$app/logging"
 
-# Overwrite the config file only if it's allowed
-if [ $overwrite_config -eq 1 ]
-then
-	ynh_config_add --template="config" --destination="/etc/$app/config"
-fi
+# Overwrite the config file
+ynh_config_add --template="config" --destination="/etc/$app/config"
 
 chmod 755 /etc/$app/
 chmod 644 /etc/$app/*
@@ -122,13 +104,10 @@ chmod 644 /etc/$app/*
 # Overwrite the InfCloud config file only if it's allowed
 if [ $infcloud -eq 1 ]
 then
-	if [ $overwrite_infcloud -eq 1 ]
-	then
-		# InfCloud configuration
-		ynh_config_add --template="config.js" --destination="$install_dir/infcloud/config.js"
-		chmod 440 "$install_dir/infcloud/config.js"
-		chown $app:www-data "$install_dir/infcloud/config.js"
-	fi
+	# InfCloud configuration
+	ynh_config_add --template="config.js" --destination="$install_dir/infcloud/config.js"
+	chmod 440 "$install_dir/infcloud/config.js"
+	chown $app:www-data "$install_dir/infcloud/config.js"
 fi
 
 yunohost service add $app --description="CalDAV and CardDAV synchronization server" --log="/var/log/uwsgi/app/radicale.log"
