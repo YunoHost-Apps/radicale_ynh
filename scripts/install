@@ -1,11 +1,5 @@
 #!/bin/bash
 
-#=================================================
-# GENERIC START
-#=================================================
-# IMPORT GENERIC HELPERS
-#=================================================
-
 source _common.sh
 source /usr/share/yunohost/helpers
 
@@ -19,7 +13,7 @@ version=$(ynh_app_upstream_version)
 #=================================================
 # DOWNLOAD, CHECK AND UNPACK SOURCE
 #=================================================
-ynh_script_progression --message="Setting up source files..."
+ynh_script_progression "Setting up source files..."
 
 # Create the directory and set the path in the config
 mkdir -p "$install_dir/collections"
@@ -28,7 +22,7 @@ mkdir -p "$install_dir/collections"
 cp ../conf/radicale.wsgi $install_dir
 
 # Copy extra files
-cp -a ../sources/extra_files_radicale/. "$install_dir"
+cp -a ../sources_radicale/. "$install_dir"
 
 if [ $infcloud -eq 1 ]
 then
@@ -36,10 +30,9 @@ then
 	ynh_setup_source --dest_dir="$install_dir/infcloud"
 fi
 
-chmod 750 "$install_dir"
-chmod -R o-rwx "$install_dir"
-chown -R $app:www-data "$install_dir"
-
+#REMOVEME? Assuming the install dir is setup using ynh_setup_source, the proper chmod/chowns are now already applied and it shouldn't be necessary to tweak perms | chmod 750 "$install_dir"
+#REMOVEME? Assuming the install dir is setup using ynh_setup_source, the proper chmod/chowns are now already applied and it shouldn't be necessary to tweak perms | chmod -R o-rwx "$install_dir"
+#REMOVEME? Assuming the install dir is setup using ynh_setup_source, the proper chmod/chowns are now already applied and it shouldn't be necessary to tweak perms | chown -R $app:www-data "$install_dir"
 # Set default permissions as radicale do.
 chmod 666 -R $install_dir/default_collections
 chmod 777 $install_dir/default_collections $install_dir/default_collections/USER
@@ -47,16 +40,16 @@ chmod 777 $install_dir/default_collections $install_dir/default_collections/USER
 #=================================================
 # NGINX CONFIGURATION
 #=================================================
-ynh_script_progression --message="Configuring NGINX web server..."
+ynh_script_progression "Configuring NGINX web server..."
 
 # Create a dedicated NGINX config
-ynh_add_nginx_config
+ynh_config_add_nginx
 
 if [ $infcloud -eq 1 ]
 then
 	# Add InfCloud in NGINX config
-	ynh_replace_string --match_string="#INFCLOUD#" --replace_string="" --target_file="/etc/nginx/conf.d/$domain.d/$app.conf"
-	ynh_store_file_checksum --file="/etc/nginx/conf.d/$domain.d/$app.conf"
+	ynh_replace --match="#INFCLOUD#" --replace="" --file="/etc/nginx/conf.d/$domain.d/$app.conf"
+	ynh_store_file_checksum "/etc/nginx/conf.d/$domain.d/$app.conf"
 fi
 
 #=================================================
@@ -65,10 +58,10 @@ fi
 
 if [ $infcloud -eq 1 ]
 then
-	ynh_script_progression --message="Configuring PHP-FPM..."
+	ynh_script_progression "Configuring PHP-FPM..."
 
 	# Create a dedicated PHP-FPM config
-	ynh_add_fpm_config
+	ynh_config_add_phpfpm
 fi
 
 #=================================================
@@ -76,7 +69,7 @@ fi
 #=================================================
 # INSTALL RADICALE IN A VIRTUALENV
 #=================================================
-ynh_script_progression --message="Install Radicale in a virtualenv"
+ynh_script_progression "Install Radicale in a virtualenv"
 
 # Init virtualenv
 python3 -m venv $install_dir/radicale
@@ -94,18 +87,18 @@ find $install_dir/radicale/ -type f -exec chmod g+r,o+r {} \;
 #=================================================
 # ADD A CONFIGURATION
 #=================================================
-ynh_script_progression --message="Adding a configuration file..."
+ynh_script_progression "Adding $app's configuration..."
 
 mkdir -p /etc/$app
 
-ynh_add_config --template="../conf/config" --destination="/etc/$app/config"
+ynh_config_add --template="config" --destination="/etc/$app/config"
 
-ynh_add_config --template="../conf/logging" --destination="/etc/$app/logging"
+ynh_config_add --template="logging" --destination="/etc/$app/logging"
 
-ynh_add_config --template="../conf/rights" --destination="/etc/$app/rights"
+ynh_config_add --template="rights" --destination="/etc/$app/rights"
 
 chmod 755 /etc/$app/
-chmod 644 /etc/$app/*
+#REMOVEME? Assuming the file is setup using ynh_config_add, the proper chmod/chowns are now already applied and it shouldn't be necessary to tweak perms | chmod 644 /etc/$app/*
 
 if [ $infcloud -eq 1 ]
 then
@@ -143,18 +136,18 @@ then
 		"Chinese") language="zh_CN"
 		;;
 	esac
-	ynh_app_setting_set --app=$app --key=language --value=$language
+	ynh_app_setting_set --key=language --value=$language
 	timezone=$(cat /etc/timezone)
-	ynh_add_config --template="../conf/config.js" --destination="$install_dir/infcloud/config.js"
+	ynh_config_add --template="config.js" --destination="$install_dir/infcloud/config.js"
 
-	chmod 440 "$install_dir/infcloud/config.js"
-	chown $app:www-data "$install_dir/infcloud/config.js"
+	#REMOVEME? Assuming the file is setup using ynh_config_add, the proper chmod/chowns are now already applied and it shouldn't be necessary to tweak perms | chmod 440 "$install_dir/infcloud/config.js"
+	#REMOVEME? Assuming the file is setup using ynh_config_add, the proper chmod/chowns are now already applied and it shouldn't be necessary to tweak perms | chown $app:www-data "$install_dir/infcloud/config.js"
 fi
 
 #=================================================
 # GENERATE CALENDARS AND ADDRESS BOOKS FOR ALL USERS
 #=================================================
-ynh_script_progression --message="Generate calendars and address books for all users"
+ynh_script_progression "Generate calendars and address books for all users"
 
 # Create default calendars and address books for each users
 while read user
@@ -169,48 +162,46 @@ done <<< "$(yunohost user list | grep username | cut -d ":" -f 2 | cut -c 2-)"
 #=================================================
 
 # Modify the hooks for create user collections and to remove them.
-ynh_replace_string --match_string="__INSTALL_DIR__" --replace_string="$install_dir" --target_file="../hooks/post_user_create"
-ynh_replace_string --match_string="__INSTALL_DIR__" --replace_string="$install_dir" --target_file="../hooks/post_user_delete"
+ynh_replace --match="__INSTALL_DIR__" --replace="$install_dir" --file="../hooks/post_user_create"
+ynh_replace --match="__INSTALL_DIR__" --replace="$install_dir" --file="../hooks/post_user_delete"
 
 #=================================================
 # SETUP SYSTEMD
 #=================================================
-ynh_script_progression --message="Configuring a systemd service..."
+ynh_script_progression "Configuring $app's systemd service..."
 
-ynh_add_config --template="../conf/radicale.ini" --destination="/etc/uwsgi/apps-available/$app.ini"
+ynh_config_add --template="radicale.ini" --destination="/etc/uwsgi/apps-available/$app.ini"
 ln -s /etc/uwsgi/apps-available/$app.ini /etc/uwsgi/apps-enabled/
 
 #=================================================
-# GENERIC FINALIZATION
-#=================================================
 # SETUP LOGROTATE
 #=================================================
-ynh_script_progression --message="Configuring log rotation..."
+ynh_script_progression "Configuring log rotation..."
 
 mkdir -p /var/log/$app
 touch /var/log/$app/$app.log
-chown $app -R /var/log/$app
+#REMOVEME? Assuming ynh_config_add_logrotate is called, the proper chmod/chowns are now already applied and it shouldn't be necessary to tweak perms | chown $app -R /var/log/$app
 
 # Use logrotate to manage application logfile(s)
-ynh_use_logrotate
+ynh_config_add_logrotate
 
 #=================================================
 # INTEGRATE SERVICE IN YUNOHOST
 #=================================================
-#ynh_script_progression --message="Integrating service in YunoHost..."
+#ynh_script_progression "Integrating service in YunoHost..."
 
 #yunohost service add $app --log="/var/log/uwsgi/app/radicale.log" --name="Radicale"
 
 #=================================================
 # START SYSTEMD SERVICE
 #=================================================
-ynh_script_progression --message="Starting a systemd service..."
+ynh_script_progression "Starting $app's systemd service..."
 
 # Start a systemd service
-ynh_systemd_action --service_name=uwsgi --action="restart"
+ynh_systemctl --service=uwsgi --action="restart"
 
 #=================================================
 # END OF SCRIPT
 #=================================================
 
-ynh_script_progression --message="Installation of $app completed"
+ynh_script_progression "Installation of $app completed"
