@@ -74,6 +74,7 @@ ram.runtime = "50M"
 
     [resources.permissions]
     main.url = "/"
+    main.allowed = [ "admins" ]
 
     [resources.apt]
     packages = "python3-pip, python3-venv, python3-dev, libldap2-dev, libsasl2-dev, libssl-dev, uwsgi, uwsgi-plugin-python3, php8.4-fpm"
