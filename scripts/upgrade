@@ -2,12 +2,12 @@
 
 source /usr/share/yunohost/helpers
 
-ynh_script_progression "Checking version..."
-
 #=================================================
 # ENSURE DOWNWARD COMPATIBILITY
 #=================================================
 ynh_script_progression "Ensuring downward compatibility..."
+
+timezone=$(cat /etc/timezone)
 
 ynh_app_setting_delete --key=unprotected_regex
 
@@ -29,10 +29,6 @@ fi
 #=================================================
 # DOWNLOAD, CHECK AND UNPACK SOURCE
 #=================================================
-
-# Retrieve the version number in the manifest file.
-version=$(ynh_app_upstream_version)
-
 ynh_script_progression "Upgrading source files..."
 
 # Copy files to the right place
@@ -63,8 +59,6 @@ chmod 777 $install_dir/default_collections $install_dir/default_collections/USER
 # Overwrite the NGINX configuration only if it's allowed
 if [ $overwrite_nginx -eq 1 ]
 then
-	ynh_script_progression "Upgrading NGINX web server configuration..."
-
 	# Create a dedicated NGINX config
 	ynh_config_add_nginx
 	if [ $infcloud -eq 1 ]
@@ -84,7 +78,6 @@ then
 	# Overwrite the php-fpm configuration only if it's allowed
 	if [ $overwrite_phpfpm -eq 1 ]
 	then
-		# Create a dedicated PHP-FPM config
 		ynh_config_add_phpfpm
 	fi
 fi
@@ -92,23 +85,19 @@ fi
 #=================================================
 # UPGRADE RADICALE IN ITS VIRTUALENV
 #=================================================
+ynh_script_progression "Upgrade Radicale in its virtualenv"
 
-# FIXME: this is still supported but the recommendation is now to *always* re-setup the app sources wether or not the upstream sources changed
-if ynh_app_upstream_version_changed
-then
-	ynh_script_progression "Upgrade Radicale in its virtualenv"
-	python3 -m venv $install_dir/radicale
-	$install_dir/radicale/bin/pip install -U radicale==$version python-ldap
+python3 -m venv $install_dir/radicale
+$install_dir/radicale/bin/pip install -U radicale==$(ynh_app_upstream_version) python-ldap
 
-	# regex.py file is patched to fix the awful commit e807c3d35bea9cfcfcacac83b1b17d748ea15a39 that stop the reading of "rights" file after the first match.
-	# mv "$install_dir/regex.py" /opt/yunohost/$app/lib/python*/site-packages/radicale/rights/regex.py
+# regex.py file is patched to fix the awful commit e807c3d35bea9cfcfcacac83b1b17d748ea15a39 that stop the reading of "rights" file after the first match.
+# mv "$install_dir/regex.py" /opt/yunohost/$app/lib/python*/site-packages/radicale/rights/regex.py
 
-	# useradd radicale -d /opt/yunohost/$app
-	chown $app: -R $install_dir/radicale
+# useradd radicale -d /opt/yunohost/$app
+chown $app: -R $install_dir/radicale
 
-	find $install_dir/radicale/ -type d -exec chmod 2755 {} \;
-	find $install_dir/radicale/ -type f -exec chmod g+r,o+r {} \;
-fi
+find $install_dir/radicale/ -type d -exec chmod 2755 {} \;
+find $install_dir/radicale/ -type f -exec chmod g+r,o+r {} \;
 
 #=================================================
 # CONFIGURE RADICALE
@@ -128,7 +117,7 @@ then
 fi
 
 chmod 755 /etc/$app/
-#REMOVEME? Assuming the file is setup using ynh_config_add, the proper chmod/chowns are now already applied and it shouldn't be necessary to tweak perms | chmod 644 /etc/$app/*
+chmod 644 /etc/$app/*
 
 # Overwrite the InfCloud config file only if it's allowed
 if [ $infcloud -eq 1 ]
@@ -136,7 +125,6 @@ then
 	if [ $overwrite_infcloud -eq 1 ]
 	then
 		# InfCloud configuration
-		timezone=$(cat /etc/timezone)
 		ynh_config_add --template="config.js" --destination="$install_dir/infcloud/config.js"
 
 		# # Optional parameters from config-panel feature
