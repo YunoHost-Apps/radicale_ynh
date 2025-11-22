@@ -126,30 +126,8 @@ then
 	then
 		# InfCloud configuration
 		ynh_config_add --template="config.js" --destination="$install_dir/infcloud/config.js"
-
-		# # Optional parameters from config-panel feature
-		# if [ -n "$firstdayofweek" ]; then
-		# 	ynh_replace --match="\(^var globalDatepickerFirstDayOfWeek=\).*" --replace="\1$firstdayofweek;" --file="$install_dir/infcloud/config.js"
-		# fi
-		# if [ -n "$activeview" ]; then
-		# 	ynh_replace --match="\(^var globalActiveView=\).*" --replace="\1\'$activeview\';" --file="$install_dir/infcloud/config.js"
-		# fi
-		# if [ -n "$openformmode" ]; then
-		# 	ynh_replace --match="\(^var globalOpenFormMode=\).*" --replace="\1\'$openformmode\';" --file="$install_dir/infcloud/config.js"
-		# fi
-		# if [ -n "$startofbusiness" ]; then
-		# 	ynh_replace --match="\(^var globalCalendarStartOfBusiness=\).*" --replace="\1$startofbusiness;" --file="$install_dir/infcloud/config.js"
-		# fi
-		# if [ -n "$endofbusiness" ]; then
-		# 	ynh_replace --match="\(^var globalCalendarEndOfBusiness=\).*" --replace="\1$endofbusiness;" --file="$install_dir/infcloud/config.js"
-		# fi
-		# if [ -n "$defaulteventduration" ]; then
-		# 	ynh_replace --match="\(^var globalDefaultEventDuration=\).*" --replace="\1$defaulteventduration;" --file="$install_dir/infcloud/config.js"
-		# fi
-		# Recalculate and store the checksum of the file for the next upgrade.
-		# ynh_store_file_checksum "$install_dir/infcloud/config.js"
-		#REMOVEME? Assuming the file is setup using ynh_config_add, the proper chmod/chowns are now already applied and it shouldn't be necessary to tweak perms | chmod 440 "$install_dir/infcloud/config.js"
-		#REMOVEME? Assuming the file is setup using ynh_config_add, the proper chmod/chowns are now already applied and it shouldn't be necessary to tweak perms | chown $app:www-data "$install_dir/infcloud/config.js"
+		chmod 440 "$install_dir/infcloud/config.js"
+		chown $app:www-data "$install_dir/infcloud/config.js"
 	fi
 fi
 
