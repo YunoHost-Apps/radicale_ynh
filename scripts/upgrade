@@ -135,7 +135,7 @@ fi
 # CONFIGURE UWSGI FOR RADICALE
 #=================================================
 
-ynh_config_add --template="radicale.ini" --destination="/etc/uwsgi/apps-available/$app.ini"
+yunohost service add $app --description="CalDAV and CardDAV synchronization server" --log="/var/log/uwsgi/app/radicale.log"
 
 #=================================================
 # SETUP LOGROTATE

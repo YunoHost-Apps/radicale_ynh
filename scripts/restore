@@ -33,7 +33,7 @@ fi
 
 ynh_restore "/etc/nginx/conf.d/$domain.d/$app.conf"
 
-yunohost service add $app --log="/var/log/uwsgi/app/radicale.log"
+yunohost service add $app --description="CalDAV and CardDAV synchronization server" --log="/var/log/uwsgi/app/radicale.log"
 
 #=================================================
 # RESTORE SYSTEMD

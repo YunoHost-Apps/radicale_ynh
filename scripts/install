@@ -120,14 +120,6 @@ do
 done <<< "$(yunohost user list | grep username | cut -d ":" -f 2 | cut -c 2-)"
 
 #=================================================
-# PREPARE THE HOOKS
-#=================================================
-
-# Modify the hooks for create user collections and to remove them.
-#ynh_replace --match="__INSTALL_DIR__" --replace="$install_dir" --file="../hooks/post_user_create"
-#ynh_replace --match="__INSTALL_DIR__" --replace="$install_dir" --file="../hooks/post_user_delete"
-
-#=================================================
 # SETUP SYSTEMD
 #=================================================
 ynh_script_progression "Configuring $app's systemd service..."
@@ -152,7 +144,7 @@ ynh_config_add_logrotate
 #=================================================
 ynh_script_progression "Integrating service in YunoHost..."
 
-yunohost service add $app --log="/var/log/uwsgi/app/radicale.log"
+yunohost service add $app --description="CalDAV and CardDAV synchronization server" --log="/var/log/uwsgi/app/radicale.log"
 
 #=================================================
 # START SYSTEMD SERVICE
