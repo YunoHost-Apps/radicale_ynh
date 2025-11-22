@@ -26,32 +26,12 @@ elif [ "$infcloud" = "No" ]; then
 	infcloud=0
 fi
 
-# If overwrite_logging doesn't exist, create it
-ynh_app_setting_set_default --key=overwrite_logging --value=1
-
-# If overwrite_config doesn't exist, create it
-ynh_app_setting_set_default --key=overwrite_config --value=1
-
-# If overwrite_infcloud doesn't exist, create it
-ynh_app_setting_set_default --key=overwrite_infcloud --value=1
-
-# If overwrite_nginx doesn't exist, create it
-ynh_app_setting_set_default --key=overwrite_nginx --value=1
-
-# If overwrite_phpfpm doesn't exist, create it
-ynh_app_setting_set_default --key=overwrite_phpfpm --value=1
-
-if [ -z "${firstdayofweek:-}"]; then
-	firstdayofweek="1"
-fi
-
 #=================================================
 # DOWNLOAD, CHECK AND UNPACK SOURCE
 #=================================================
 
 # Retrieve the version number in the manifest file.
 version=$(ynh_app_upstream_version)
-
 
 ynh_script_progression "Upgrading source files..."
 
@@ -62,7 +42,7 @@ mkdir -p $install_dir/collections
 cp ../conf/radicale.wsgi $install_dir
 
 # Copy extra files
-cp -a ../sources_radicale/. "$install_dir"
+cp -a ../sources/extra_files_radicale/. "$install_dir"
 
 if [ $infcloud -eq 1 ]
 then
@@ -192,14 +172,6 @@ fi
 ynh_config_add --template="radicale.ini" --destination="/etc/uwsgi/apps-available/$app.ini"
 
 #=================================================
-# PREPARE THE HOOKS
-#=================================================
-
-# Modify the hooks for create user collections and to remove them.
-ynh_replace --match="__INSTALL_DIR__" --replace="$install_dir" --file="../hooks/post_user_create"
-ynh_replace --match="__INSTALL_DIR__" --replace="$install_dir" --file="../hooks/post_user_delete"
-
-#=================================================
 # SETUP LOGROTATE
 #=================================================
 ynh_script_progression "Upgrading logrotate configuration..."
@@ -216,7 +188,7 @@ ynh_config_add_logrotate
 #=================================================
 ynh_script_progression "Integrating service in YunoHost..."
 
-# yunohost service add $app --log="/var/log/uwsgi/app/radicale.log"
+yunohost service add $app --log="/var/log/uwsgi/app/radicale.log"
 
 #=================================================
 # START SYSTEMD SERVICE
