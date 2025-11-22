@@ -22,7 +22,7 @@ mkdir -p "$install_dir/collections"
 cp ../conf/radicale.wsgi $install_dir
 
 # Copy extra files
-cp -a ../sources_radicale/. "$install_dir"
+cp -a ../sources/extra_files_radicale/. "$install_dir"
 
 if [ $infcloud -eq 1 ]
 then
