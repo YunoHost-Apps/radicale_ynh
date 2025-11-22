@@ -131,10 +131,6 @@ then
 	fi
 fi
 
-#=================================================
-# CONFIGURE UWSGI FOR RADICALE
-#=================================================
-
 yunohost service add $app --description="CalDAV and CardDAV synchronization server" --log="/var/log/uwsgi/app/radicale.log"
 
 #=================================================
@@ -148,13 +144,6 @@ chown radicale -R /var/log/$app
 
 # Use logrotate to manage app-specific logfile(s)
 ynh_config_add_logrotate
-
-#=================================================
-# INTEGRATE SERVICE IN YUNOHOST
-#=================================================
-ynh_script_progression "Integrating service in YunoHost..."
-
-yunohost service add $app --log="/var/log/uwsgi/app/radicale.log"
 
 #=================================================
 # START SYSTEMD SERVICE
