@@ -1,0 +1,80 @@
+#:schema https://raw.githubusercontent.com/YunoHost/apps/master/schemas/manifest.v2.schema.json
+
+packaging_format = 2
+
+id = "radicale"
+name = "Radicale"
+description.en = "CalDAV (calendar) and CardDAV (contact) synchronization server"
+description.fr = "Serveur de synchronisation CalDAV et CardDAV"
+
+version = "1.1.7~ynh1"
+
+maintainers = []
+
+[upstream]
+license = "GPL-3.0,AGPL-3.0"
+website = "http://radicale.org"
+admindoc = "https://github.com/Kozea/Radicale/blob/website/pages/user_documentation.rst"
+code = "https://github.com/Kozea/Radicale"
+
+[integration]
+yunohost = ">= 12.1.17"
+helpers_version = "2.1"
+architectures = "all"
+multi_instance = false
+
+ldap = true
+sso = false
+
+disk = "50M"
+ram.build = "50M"
+ram.runtime = "50M"
+
+[install]
+    [install.domain]
+    type = "domain"
+
+    [install.path]
+    type = "path"
+    default = "/radicale"
+
+    [install.language]
+    ask.en = "Choose your interface language"
+    ask.fr = "Choisissez la langue de l'interface"
+    type = "select"
+    choices = ["cs_CZ", "da_DK", "de_DE", "en_US", "es_ES", "fr_FR", "it_IT", "ja_JP", "hu_HU", "nl_NL", "sk_SK", "tr_TR", "ru_RU", "uk_UA", "zh_CN"]
+    default = "fr_FR"
+
+    [install.admin]
+    type = "user"
+
+    [install.infcloud]
+    ask.en = "Install InfCloud web interface?"
+    ask.fr = "Installer l'interface web InfCloud?"
+    type = "boolean"
+    default = true
+
+[resources]
+
+    [resources.sources]
+
+        [resources.sources.main]
+        # dummy source for autoupdater
+        url = "https://github.com/Kozea/Radicale/archive/refs/tags/1.1.7.tar.gz"
+        sha256 = "e84df39f8b79d220efb93b2c205fa64bbf9965a95ff278d5f032577f84c2bb1a"
+
+        [resources.sources.infcloud]
+        url = "https://www.inf-it.com/InfCloud_0.13.1.zip"
+        sha256 = "9fa95edd2dcc2b864a10b503ab9220895ea28d4c5541ab02117de1511d5464d4"
+
+    [resources.system_user]
+
+    [resources.install_dir]
+    group = "www-data:r-x"
+
+    [resources.permissions]
+    main.url = "/"
+    main.allowed = [ "admins" ]
+
+    [resources.apt]
+    packages = "python3-pip, python3-venv, python3-dev, libldap2-dev, libsasl2-dev, libssl-dev, uwsgi, uwsgi-plugin-python3, php8.4-fpm"

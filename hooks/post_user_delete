@@ -1,6 +1,8 @@
 #!/bin/bash
 
-user=$1
-final_path=__FINALPATH__
+source /usr/share/yunohost/helpers
 
-sudo rm -r $final_path/collections/$user
+user=$1
+install_dir=$(ynh_app_setting_get --app=$app --key=install_dir)
+
+sudo rm -r $install_dir/collections/$user
