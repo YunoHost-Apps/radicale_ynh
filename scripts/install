@@ -47,7 +47,8 @@ _radicale_ensure_public_access
 
 _radicale_remove_v1_remains
 
-_radicale_add_nginx_config
+ynh_config_add_nginx
+_radicale_add_wellknown
 
 ynh_config_add_logrotate
 

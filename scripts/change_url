@@ -19,12 +19,8 @@ ynh_systemctl --service="$app" --action="stop"
 #=================================================
 ynh_script_progression "Updating NGINX web server configuration..."
 
-# Like ynh_config_change_url_nginx, with the .well-known check for the new domain
-ynh_backup_if_checksum_is_different "/etc/nginx/conf.d/$old_domain.d/$app.conf"
-ynh_delete_file_checksum "/etc/nginx/conf.d/$old_domain.d/$app.conf"
-ynh_safe_rm "/etc/nginx/conf.d/$old_domain.d/$app.conf"
-
-_radicale_add_nginx_config
+ynh_config_change_url_nginx
+_radicale_add_wellknown
 
 #=================================================
 # SPECIFIC MODIFICATIONS
