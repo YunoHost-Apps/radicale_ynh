@@ -5,6 +5,7 @@ Radicale is a small but powerful CalDAV (calendars, tasks) and CardDAV (contacts
 - Share calendars, task lists and address books between all your devices
 - Login with the YunoHost account (username or email address); access is granted through the YunoHost permission of the app
 - A default calendar and address book are created on the first login
+- Optional sharing with other users or through secret links
 - Optional history of every change in a git repository: a deleted or modified event or contact can always be recovered
 - Data stored as plain iCalendar and vCard files, easy to back up and to migrate
 - Simple web interface to create, import and export calendars and address books

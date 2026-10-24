@@ -37,7 +37,9 @@ _radicale_init_git() {
     fi
     ynh_exec_as_app git -C "$collections_dir" config user.name "Radicale"
     ynh_exec_as_app git -C "$collections_dir" config user.email "$app@$domain"
+    # collection-db holds the shares and the secret links
     cat > "$collections_dir/.gitignore" << EOF
+/collection-db/
 .Radicale.cache
 .Radicale.lock
 .Radicale.tmp-*
@@ -52,6 +54,11 @@ EOF
 
 _radicale_add_config() {
     storage_hook="$(_radicale_storage_hook)"
+    if [ "${protect_collections:-0}" -eq 1 ]; then
+        permit_delete_collection=false
+    else
+        permit_delete_collection=true
+    fi
     ynh_config_add --template="config" --destination="$install_dir/config"
     chmod 640 "$install_dir/config"
     chown "$app:$app" "$install_dir/config"
@@ -266,7 +273,7 @@ _radicale_migrate_from_v1() {
             | grep -Fxv -e '[user-read-root-collection]' -e 'user: .+' -e 'collection: ^/' -e 'permission: r' \
                 -e '[owner-read-write]' -e 'collection: ^%(login)s|^%(login)s/.*' -e 'permission: rw' || true)"
         if [ -n "$custom_rules" ]; then
-            ynh_print_warn "The sharing rules added to /etc/$app/rights are not migrated: with Radicale 3, each user only accesses their own calendars and address books. The old rules are kept in $backup/etc/rights."
+            ynh_print_warn "The sharing rules added to /etc/$app/rights are not migrated: sharing can be enabled from the configuration panel of the app. The old rules are kept in $backup/etc/rights."
         fi
     fi
 

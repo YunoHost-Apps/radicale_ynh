@@ -18,3 +18,28 @@ services = ["__APP__"]
         help.en = "Every change made to a calendar or an address book is recorded in a git repository, in __DATA_DIR__/collections. A deleted or modified event or contact can then always be recovered. Disabling it keeps the existing history but stops recording new changes."
         help.fr = "Chaque modification d'un agenda ou d'un carnet d'adresses est enregistrée dans un dépôt git, dans __DATA_DIR__/collections. Un événement ou un contact supprimé ou modifié peut ainsi toujours être retrouvé. Désactiver cette option conserve l'historique existant mais n'enregistre plus les nouvelles modifications."
         type = "boolean"
+
+        [main.storage.protect_collections]
+        ask.en = "Prevent deleting a whole calendar or address book"
+        ask.fr = "Empêcher la suppression d'un agenda ou d'un carnet d'adresses entier"
+        help.en = "Protects against a mistake in a client or in the web interface. Events and contacts can still be deleted one by one, and a whole calendar or address book can still be replaced by importing a file."
+        help.fr = "Protège d'une fausse manipulation dans un client ou dans l'interface web. Les événements et les contacts peuvent toujours être supprimés un par un, et un agenda ou un carnet d'adresses entier peut toujours être remplacé en important un fichier."
+        type = "boolean"
+
+    [main.sharing]
+    name.en = "Sharing"
+    name.fr = "Partage"
+
+        [main.sharing.sharing_users]
+        ask.en = "Let users share their calendars and address books with other users"
+        ask.fr = "Permettre aux utilisateurs de partager leurs agendas et carnets d'adresses avec d'autres utilisateurs"
+        help.en = "Each user shares from the web interface of Radicale, read-only or editable. The recipient finds the share under incoming shares in the web interface, and must enable and show it before it reaches their clients. Disabling this option deletes all the shares between users."
+        help.fr = "Chaque utilisateur partage depuis l'interface web de Radicale, en lecture seule ou en écriture. Le destinataire trouve le partage dans les partages reçus de l'interface web, et doit l'activer et l'afficher pour qu'il arrive dans ses clients. Désactiver cette option supprime tous les partages entre utilisateurs."
+        type = "boolean"
+
+        [main.sharing.sharing_links]
+        ask.en = "Let users share their calendars and address books through a secret link"
+        ask.fr = "Permettre aux utilisateurs de partager leurs agendas et carnets d'adresses par un lien secret"
+        help.en = "Anyone who has the link can access the calendar or address book without an account, read-only or editable, as chosen by the owner. Disabling this option deletes all the links."
+        help.fr = "Toute personne qui a le lien peut accéder à l'agenda ou au carnet d'adresses sans compte, en lecture seule ou en écriture, au choix du propriétaire. Désactiver cette option supprime tous les liens."
+        type = "boolean"

@@ -31,6 +31,9 @@ fi
 ynh_script_progression "Ensuring downward compatibility..."
 
 ynh_app_setting_set_default --key=git_history --value=1
+ynh_app_setting_set_default --key=protect_collections --value=0
+ynh_app_setting_set_default --key=sharing_users --value=0
+ynh_app_setting_set_default --key=sharing_links --value=0
 
 #=================================================
 # DOWNLOAD, CHECK AND UNPACK SOURCE
