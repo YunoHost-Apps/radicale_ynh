@@ -77,23 +77,17 @@ _radicale_wellknown_available() {
     return 0
 }
 
-_radicale_add_nginx_config() {
+# To call after ynh_config_add_nginx: edits the generated file, not the
+# template, which is reused by later upgrades
+_radicale_add_wellknown() {
     local nginx_conf="/etc/nginx/conf.d/$domain.d/$app.conf"
-    local wellknown=0
-    if _radicale_wellknown_available; then
-        wellknown=1
-    else
+    if ! _radicale_wellknown_available; then
         ynh_print_warn "Another app already handles /.well-known/caldav and /.well-known/carddav on $domain: clients will need the full URL https://$domain${path%/}/ instead of just the domain name."
+        return 0
     fi
-
-    ynh_config_add_nginx
-
-    # Edit the generated file, not the template, which is reused by later upgrades
-    if [ "$wellknown" -eq 1 ]; then
-        ynh_replace --match="^#wellknown#" --replace="" --file="$nginx_conf"
-        ynh_store_file_checksum "$nginx_conf"
-        ynh_systemctl --service=nginx --action=reload
-    fi
+    ynh_replace --match="^#wellknown#" --replace="" --file="$nginx_conf"
+    ynh_store_file_checksum "$nginx_conf"
+    ynh_systemctl --service=nginx --action=reload
 }
 
 # DAV clients cannot use the SSO: SSOwat lets requests through and Radicale
