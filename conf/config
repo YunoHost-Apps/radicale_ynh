@@ -31,6 +31,7 @@ type = owner_only
 type = multifilesystem
 filesystem_folder = __DATA_DIR__/collections
 hook = __STORAGE_HOOK__
+use_mtime_and_size_for_item_cache = True
 predefined_collections = {"calendar": {"tag": "VCALENDAR", "D:displayname": "Calendar", "C:supported-calendar-component-set": "VEVENT,VTODO,VJOURNAL"}, "contacts": {"tag": "VADDRESSBOOK", "D:displayname": "Contacts"}}
 
 [web]
