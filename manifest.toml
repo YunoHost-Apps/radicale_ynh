@@ -9,7 +9,7 @@ description.fr = "Serveur CalDAV (agendas, tâches) et CardDAV (contacts) léger
 
 version = "3.8.3~ynh1"
 
-maintainers = []
+maintainers = ["retiolus"]
 
 [upstream]
 license = "GPL-3.0-or-later"
