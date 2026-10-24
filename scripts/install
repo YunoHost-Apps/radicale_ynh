@@ -28,6 +28,13 @@ ynh_script_progression "Adding $app's configuration files..."
 
 _radicale_add_config
 
+# Data kept after a failed upgrade from 1.x (the marker means an interrupted conversion)
+if [ -d "$data_dir/radicale1-backup/collections" ] \
+    && { [ ! -d "$data_dir/collections/collection-root" ] || [ -e "$data_dir/.radicale1-migration-in-progress" ]; }; then
+    ynh_script_progression "Converting the Radicale 1.x data found in $data_dir/radicale1-backup..."
+    _radicale_convert_v1_data _radicale_v1_install_die
+fi
+
 _radicale_prepare_data_dir
 _radicale_init_git
 
@@ -37,6 +44,8 @@ _radicale_init_git
 ynh_script_progression "Adding system configurations related to $app..."
 
 _radicale_ensure_public_access
+
+_radicale_remove_v1_remains
 
 _radicale_add_nginx_config
 
@@ -54,6 +63,8 @@ ynh_config_add_fail2ban --logpath="/var/log/$app/$app.log"
 ynh_script_progression "Starting $app's systemd service..."
 
 ynh_systemctl --service="$app" --action="start" --wait_until="Radicale server ready"
+
+_radicale_v1_migration_done
 
 #=================================================
 # END OF SCRIPT

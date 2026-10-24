@@ -8,6 +8,15 @@ source _common.sh
 source /usr/share/yunohost/helpers
 
 #=================================================
+# SAVE THE RADICALE 1.x DATA
+#=================================================
+
+if ynh_app_upgrading_from_version_before "3.8.3~ynh1"; then
+    ynh_script_progression "Saving a copy of the Radicale 1.x data..."
+    _radicale_save_v1_data
+fi
+
+#=================================================
 # STOP SYSTEMD SERVICE
 #=================================================
 ynh_script_progression "Stopping $app's systemd service..."
@@ -37,6 +46,11 @@ ynh_script_progression "Updating $app's configuration files..."
 
 _radicale_add_config
 
+if ynh_app_upgrading_from_version_before "3.8.3~ynh1"; then
+    ynh_script_progression "Migrating from Radicale 1.x..."
+    _radicale_migrate_from_v1
+fi
+
 _radicale_prepare_data_dir
 _radicale_init_git
 
@@ -63,6 +77,8 @@ ynh_config_add_fail2ban --logpath="/var/log/$app/$app.log"
 ynh_script_progression "Starting $app's systemd service..."
 
 ynh_systemctl --service="$app" --action="start" --wait_until="Radicale server ready"
+
+_radicale_v1_migration_done
 
 #=================================================
 # END OF SCRIPT
