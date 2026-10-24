@@ -34,6 +34,13 @@ hook = __STORAGE_HOOK__
 use_mtime_and_size_for_item_cache = True
 predefined_collections = {"calendar": {"tag": "VCALENDAR", "D:displayname": "Calendar", "C:supported-calendar-component-set": "VEVENT,VTODO,VJOURNAL"}, "contacts": {"tag": "VADDRESSBOOK", "D:displayname": "Contacts"}}
 
+[sharing]
+type = files
+collection_by_map = __SHARING_USERS__
+permit_create_map = __SHARING_USERS__
+collection_by_token = __SHARING_LINKS__
+permit_create_token = __SHARING_LINKS__
+
 [web]
 type = internal
 

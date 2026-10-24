@@ -13,6 +13,10 @@ source /usr/share/yunohost/helpers
 
 git_history=1
 ynh_app_setting_set --key=git_history --value="$git_history"
+sharing_users=0
+ynh_app_setting_set --key=sharing_users --value="$sharing_users"
+sharing_links=0
+ynh_app_setting_set --key=sharing_links --value="$sharing_links"
 
 #=================================================
 # DOWNLOAD, CHECK AND UNPACK SOURCE
