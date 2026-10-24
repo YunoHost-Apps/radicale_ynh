@@ -1,0 +1,79 @@
+#:schema https://raw.githubusercontent.com/YunoHost/apps/main/schemas/manifest.v2.schema.json
+
+packaging_format = 2
+
+id = "radicale"
+name = "Radicale"
+description.en = "Lightweight CalDAV (calendars, tasks) and CardDAV (contacts) server"
+description.fr = "Serveur CalDAV (agendas, tâches) et CardDAV (contacts) léger"
+
+version = "3.8.3~ynh1"
+
+maintainers = []
+
+[upstream]
+license = "GPL-3.0-or-later"
+website = "https://radicale.org"
+admindoc = "https://radicale.org/v3.html"
+code = "https://github.com/Kozea/Radicale"
+cpe = "cpe:2.3:a:radicale:radicale"
+
+[integration]
+yunohost = ">= 12.1.17"
+helpers_version = "2.1"
+architectures = "all"
+multi_instance = true
+
+ldap = true
+sso = false
+
+disk = "50M"
+ram.build = "100M"
+ram.runtime = "50M"
+
+[install]
+    [install.domain]
+    type = "domain"
+
+    [install.path]
+    type = "path"
+    default = "/radicale"
+
+    [install.init_main_permission]
+    help.en = "Users of this group can log in to Radicale with their YunoHost credentials. Choosing 'visitors' allows every YunoHost user. Calendar and contact clients cannot use the YunoHost portal, so the 'visitors' group is always kept on this permission and access is enforced by Radicale itself."
+    help.fr = "Les utilisateurs de ce groupe peuvent se connecter à Radicale avec leurs identifiants YunoHost. Choisir « visitors » autorise tous les utilisateurs YunoHost. Les clients d'agenda et de contacts ne peuvent pas utiliser le portail YunoHost : le groupe « visitors » est donc toujours conservé sur cette permission et c'est Radicale qui contrôle l'accès."
+    type = "group"
+    default = "visitors"
+
+[resources]
+    [resources.sources]
+
+    [resources.sources.main]
+    url = "https://github.com/Kozea/Radicale/archive/refs/tags/v3.8.3.tar.gz"
+    sha256 = "439fd36ce5036dceaf65da0bc88bd831e576fa06cff86a915971784c5c032e49"
+
+    autoupdate.strategy = "latest_github_tag"
+
+    [resources.system_user]
+
+    [resources.install_dir]
+
+    [resources.data_dir]
+    group = "__APP__:---"
+
+    [resources.ports]
+    main.default = 5232
+
+    [resources.apt]
+    packages = "python3-venv, git"
+
+    [resources.permissions]
+    main.url = "/"
+    main.auth_header = false
+    main.protected = true
+
+    wellknown.url = "re:__DOMAIN__\\/\\.well-known\\/ca(l|rd)dav\\/?$"
+    wellknown.allowed = "visitors"
+    wellknown.auth_header = false
+    wellknown.show_tile = false
+    wellknown.protected = true

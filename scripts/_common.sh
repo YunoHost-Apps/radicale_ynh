@@ -1,316 +1,106 @@
 #!/bin/bash
 
 #=================================================
-# COMMON VARIABLES
+# COMMON VARIABLES AND CUSTOM HELPERS
 #=================================================
 
-YNH_PHP_VERSION="7.3"
+# The venv is rebuilt every time to follow Python upgrades of the system
+_radicale_install_venv() {
+    ynh_setup_source --dest_dir="$install_dir/source" --full_replace
 
-pkg_dependencies="python-pip python-virtualenv virtualenv python-dev libldap2-dev libsasl2-dev libssl-dev uwsgi uwsgi-plugin-python"
+    ynh_safe_rm "$install_dir/venv"
+    chown -R "$app:$app" "$install_dir"
+    pushd "$install_dir"
+        ynh_exec_as_app python3 -m venv "$install_dir/venv"
+        ynh_hide_warnings ynh_exec_as_app "$install_dir/venv/bin/pip" install --no-cache-dir --upgrade pip setuptools wheel
+        ynh_hide_warnings ynh_exec_as_app "$install_dir/venv/bin/pip" install --no-cache-dir "$install_dir/source[ldap]"
+    popd
 
-#=================================================
-# BOOLEAN CONVERTER
-#=================================================
-
-bool_to_01 () {
-	local var="$1"
-	[ "$var" = "true" ] && var=1
-	[ "$var" = "false" ] && var=0
-	echo "$var"
+    ynh_safe_rm "$install_dir/source"
+    ynh_safe_rm "$install_dir/.cache"
 }
 
-bool_to_true_false () {
-	local var="$1"
-	[ "$var" = "1" ] && var=true
-	[ "$var" = "0" ] && var=false
-	echo "$var"
+_radicale_storage_hook() {
+    if [ "${git_history:-1}" -eq 1 ]; then
+        echo "$install_dir/storage_hook.sh %(user)s"
+    fi
 }
 
-#=================================================
-# FUTUR OFFICIAL HELPERS
-#=================================================
+_radicale_init_git() {
+    local collections_dir="$data_dir/collections"
+    [ "${git_history:-1}" -eq 1 ] || return 0
 
+    install -o "$app" -g "$app" -m 750 "$YNH_APP_BASEDIR/conf/storage_hook.sh" "$install_dir/storage_hook.sh"
 
-#=================================================
-# EXPERIMENTAL HELPERS
-#=================================================
+    if [ ! -d "$collections_dir/.git" ]; then
+        ynh_exec_as_app git -C "$collections_dir" init --quiet --initial-branch=main
+    fi
+    ynh_exec_as_app git -C "$collections_dir" config user.name "Radicale"
+    ynh_exec_as_app git -C "$collections_dir" config user.email "$app@$domain"
+    cat > "$collections_dir/.gitignore" << EOF
+.Radicale.cache
+.Radicale.lock
+.Radicale.tmp-*
+EOF
+    chown "$app:$app" "$collections_dir/.gitignore"
 
-# Send an email to inform the administrator
-#
-# usage: ynh_send_readme_to_admin --app_message=app_message [--recipients=recipients] [--type=type]
-# | arg: -m --app_message= - The file with the content to send to the administrator.
-# | arg: -r, --recipients= - The recipients of this email. Use spaces to separate multiples recipients. - default: root
-#	example: "root admin@domain"
-#	If you give the name of a YunoHost user, ynh_send_readme_to_admin will find its email adress for you
-#	example: "root admin@domain user1 user2"
-# | arg: -t, --type= - Type of mail, could be 'backup', 'change_url', 'install', 'remove', 'restore', 'upgrade'
-ynh_send_readme_to_admin() {
-	# Declare an array to define the options of this helper.
-	declare -Ar args_array=( [m]=app_message= [r]=recipients= [t]=type= )
-	local app_message
-	local recipients
-	local type
-	# Manage arguments with getopts
-
-	ynh_handle_getopts_args "$@"
-	app_message="${app_message:-}"
-	recipients="${recipients:-root}"
-	type="${type:-install}"
-
-	# Get the value of admin_mail_html
-	admin_mail_html=$(ynh_app_setting_get $app admin_mail_html)
-	admin_mail_html="${admin_mail_html:-0}"
-
-	# Retrieve the email of users
-	find_mails () {
-		local list_mails="$1"
-		local mail
-		local recipients=" "
-		# Read each mail in argument
-		for mail in $list_mails
-		do
-			# Keep root or a real email address as it is
-			if [ "$mail" = "root" ] || echo "$mail" | grep --quiet "@"
-			then
-				recipients="$recipients $mail"
-			else
-				# But replace an user name without a domain after by its email
-				if mail=$(ynh_user_get_info "$mail" "mail" 2> /dev/null)
-				then
-					recipients="$recipients $mail"
-				fi
-			fi
-		done
-		echo "$recipients"
-	}
-	recipients=$(find_mails "$recipients")
-
-	# Subject base
-	local mail_subject="☁️🆈🅽🅷☁️: \`$app\`"
-
-	# Adapt the subject according to the type of mail required.
-	if [ "$type" = "backup" ]; then
-		mail_subject="$mail_subject has just been backup."
-	elif [ "$type" = "change_url" ]; then
-		mail_subject="$mail_subject has just been moved to a new URL!"
-	elif [ "$type" = "remove" ]; then
-		mail_subject="$mail_subject has just been removed!"
-	elif [ "$type" = "restore" ]; then
-		mail_subject="$mail_subject has just been restored!"
-	elif [ "$type" = "upgrade" ]; then
-		mail_subject="$mail_subject has just been upgraded!"
-	else	# install
-		mail_subject="$mail_subject has just been installed!"
-	fi
-
-	local mail_message="This is an automated message from your beloved YunoHost server.
-
-Specific information for the application $app.
-
-$(if [ -n "$app_message" ]
-then
-	cat "$app_message"
-else
-	echo "...No specific information..."
-fi)
-
----
-Automatic diagnosis data from YunoHost
-
-__PRE_TAG1__$(yunohost tools diagnosis | grep -B 100 "services:" | sed '/services:/d')__PRE_TAG2__"
-
-	# Store the message into a file for further modifications.
-	echo "$mail_message" > mail_to_send
-
-	# If a html email is required. Apply html tags to the message.
- 	if [ "$admin_mail_html" -eq 1 ]
- 	then
-		# Insert 'br' tags at each ending of lines.
-		ynh_replace_string "$" "<br>" mail_to_send
-
-		# Insert starting HTML tags
-		sed --in-place '1s@^@<!DOCTYPE html>\n<html>\n<head></head>\n<body>\n@' mail_to_send
-
-		# Keep tabulations
-		ynh_replace_string "  " "\&#160;\&#160;" mail_to_send
-		ynh_replace_string "\t" "\&#160;\&#160;" mail_to_send
-
-		# Insert url links tags
-		ynh_replace_string "__URL_TAG1__\(.*\)__URL_TAG2__\(.*\)__URL_TAG3__" "<a href=\"\2\">\1</a>" mail_to_send
-
-		# Insert pre tags
-		ynh_replace_string "__PRE_TAG1__" "<pre>" mail_to_send
-		ynh_replace_string "__PRE_TAG2__" "<\pre>" mail_to_send
-
-		# Insert finishing HTML tags
-		echo -e "\n</body>\n</html>" >> mail_to_send
-
-	# Otherwise, remove tags to keep a plain text.
-	else
-		# Remove URL tags
-		ynh_replace_string "__URL_TAG[1,3]__" "" mail_to_send
-		ynh_replace_string "__URL_TAG2__" ": " mail_to_send
-
-		# Remove PRE tags
-		ynh_replace_string "__PRE_TAG[1-2]__" "" mail_to_send
-	fi
-
-	# Define binary to use for mail command
-	if [ -e /usr/bin/bsd-mailx ]
-	then
-		local mail_bin=/usr/bin/bsd-mailx
-	else
-		local mail_bin=/usr/bin/mail.mailutils
-	fi
-
-	if [ "$admin_mail_html" -eq 1 ]
-	then
-		content_type="text/html"
-	else
-		content_type="text/plain"
-	fi
-
-	# Send the email to the recipients
-	cat mail_to_send | $mail_bin -a "Content-Type: $content_type; charset=UTF-8" -s "$mail_subject" "$recipients"
+    ynh_exec_as_app git -C "$collections_dir" add --all
+    if ! ynh_exec_as_app git -C "$collections_dir" diff --cached --quiet; then
+        ynh_exec_as_app git -C "$collections_dir" commit --quiet --message="State of the collections when history was enabled"
+    fi
 }
 
-#=================================================
-
-ynh_maintenance_mode_ON () {
-	# Load value of $path_url and $domain from the config if their not set
-	if [ -z $path_url ]; then
-		path_url=$(ynh_app_setting_get $app path)
-	fi
-	if [ -z $domain ]; then
-		domain=$(ynh_app_setting_get $app domain)
-	fi
-
-	# Create an html to serve as maintenance notice
-	echo "<!DOCTYPE html>
-<html>
-<head>
-<meta http-equiv="refresh" content="3">
-<title>Your app $app is currently under maintenance!</title>
-<style>
-	body {
-		width: 70em;
-		margin: 0 auto;
-	}
-</style>
-</head>
-<body>
-<h1>Your app $app is currently under maintenance!</h1>
-<p>This app has been put under maintenance by your administrator at $(date)</p>
-<p>Please wait until the maintenance operation is done. This page will be reloaded as soon as your app will be back.</p>
-
-</body>
-</html>" > "/var/www/html/maintenance.$app.html"
-
-	# Create a new nginx config file to redirect all access to the app to the maintenance notice instead.
-	echo "# All request to the app will be redirected to ${path_url}_maintenance and fall on the maintenance notice
-rewrite ^${path_url}/(.*)$ ${path_url}_maintenance/? redirect;
-# Use another location, to not be in conflict with the original config file
-location ${path_url}_maintenance/ {
-alias /var/www/html/ ;
-
-try_files maintenance.$app.html =503;
-
-# Include SSOWAT user panel.
-include conf.d/yunohost_panel.conf.inc;
-}" > "/etc/nginx/conf.d/$domain.d/maintenance.$app.conf"
-
-	# The current config file will redirect all requests to the root of the app.
-	# To keep the full path, we can use the following rewrite rule:
-	# 	rewrite ^${path_url}/(.*)$ ${path_url}_maintenance/\$1? redirect;
-	# The difference will be in the $1 at the end, which keep the following queries.
-	# But, if it works perfectly for a html request, there's an issue with any php files.
-	# This files are treated as simple files, and will be downloaded by the browser.
-	# Would be really be nice to be able to fix that issue. So that, when the page is reloaded after the maintenance, the user will be redirected to the real page he was.
-
-	systemctl reload nginx
+_radicale_add_config() {
+    storage_hook="$(_radicale_storage_hook)"
+    ynh_config_add --template="config" --destination="$install_dir/config"
+    chmod 640 "$install_dir/config"
+    chown "$app:$app" "$install_dir/config"
 }
 
-ynh_maintenance_mode_OFF () {
-	# Load value of $path_url and $domain from the config if their not set
-	if [ -z $path_url ]; then
-		path_url=$(ynh_app_setting_get $app path)
-	fi
-	if [ -z $domain ]; then
-		domain=$(ynh_app_setting_get $app domain)
-	fi
-
-	# Rewrite the nginx config file to redirect from ${path_url}_maintenance to the real url of the app.
-	echo "rewrite ^${path_url}_maintenance/(.*)$ ${path_url}/\$1 redirect;" > "/etc/nginx/conf.d/$domain.d/maintenance.$app.conf"
-	systemctl reload nginx
-
-	# Sleep 4 seconds to let the browser reload the pages and redirect the user to the app.
-	sleep 4
-
-	# Then remove the temporary files used for the maintenance.
-	rm "/var/www/html/maintenance.$app.html"
-	rm "/etc/nginx/conf.d/$domain.d/maintenance.$app.conf"
-
-	systemctl reload nginx
+_radicale_prepare_data_dir() {
+    local collections_dir="$data_dir/collections"
+    mkdir -p "$collections_dir"
+    chown "$app:$app" "$collections_dir"
+    chmod 750 "$collections_dir"
 }
 
-#=================================================
+# Fails if another app (e.g. Nextcloud) already defines the .well-known redirections on the domain
+_radicale_wellknown_available() {
+    local conf
+    for conf in "/etc/nginx/conf.d/$domain.d/"*.conf; do
+        [ -e "$conf" ] || continue
+        [ "$conf" == "/etc/nginx/conf.d/$domain.d/$app.conf" ] && continue
+        if grep -Eq '^[^#]*\.well-known/(caldav|carddav)' "$conf"; then
+            return 1
+        fi
+    done
+    return 0
+}
 
-# Create a changelog for an app after an upgrade.
-#
-# The changelog is printed into the file ./changelog for the time of the upgrade.
-#
-# In order to create a changelog, ynh_app_changelog will get info from /etc/yunohost/apps/$app/status.json
-# In order to find the current commit use by the app.
-# The remote repository, and the branch.
-# The changelog will be only the commits since the current revision.
-#
-# Because of the need of those info, ynh_app_changelog works only
-# with apps that have been installed from a list.
-#
-# usage: ynh_app_changelog
-ynh_app_changelog () {
-	get_value_from_settings ()
-	{
-		local value="$1"
-		# Extract a value from the status.json file of an installed app.
+_radicale_add_nginx_config() {
+    local nginx_conf="/etc/nginx/conf.d/$domain.d/$app.conf"
+    local wellknown=0
+    if _radicale_wellknown_available; then
+        wellknown=1
+    else
+        ynh_print_warn "Another app already handles /.well-known/caldav and /.well-known/carddav on $domain: clients will need the full URL https://$domain${path%/}/ instead of just the domain name."
+    fi
 
-		grep "$value\": \"" /etc/yunohost/apps/$app/status.json | sed "s/.*$value\": \"\([^\"]*\).*/\1/"
-	}
+    ynh_config_add_nginx
 
-	local current_revision="$(get_value_from_settings revision)"
-	local repo="$(get_value_from_settings url)"
-	local branch="$(get_value_from_settings branch)"
-	# ynh_app_changelog works only with an app installed from a list.
-	if [ -z "$current_revision" ] || [ -z "$repo" ] || [ -z "$branch" ]
-	then
-		ynh_print_warn "Unable to build the changelog..."
-		touch changelog
-		return 0
-	fi
+    # Edit the generated file, not the template, which is reused by later upgrades
+    if [ "$wellknown" -eq 1 ]; then
+        ynh_replace --match="^#wellknown#" --replace="" --file="$nginx_conf"
+        ynh_store_file_checksum "$nginx_conf"
+        ynh_systemctl --service=nginx --action=reload
+    fi
+}
 
-	# Fetch the history of the repository, without cloning it
-	mkdir git_history
-	(cd git_history
-	ynh_exec_warn_less git init
-	ynh_exec_warn_less git remote add -f origin $repo
-	# Get the line of the current commit of the installed app in the history.
-	local line_to_head=$(git log origin/$branch --pretty=oneline | grep --line-number "$current_revision" | cut -d':' -f1)
-	# Cut the history before the current commit, to keep only newer commits.
-	# Then use sed to reorganise each lines and have a nice list of commits since the last upgrade.
-	# This list is redirected into the file changelog
-	git log origin/$branch --pretty=oneline | head --lines=$(($line_to_head-1)) | sed 's/^\([[:alnum:]]*\)\(.*\)/*(\1) -> \2/g' > ../changelog)
-	# Remove 'Merge pull request' commits
-	sed -i '/Merge pull request #[[:digit:]]* from/d' changelog
-	# As well as conflict resolving commits
-	sed -i '/Merge branch .* into/d' changelog
-
-	# Get the value of admin_mail_html
-	admin_mail_html=$(ynh_app_setting_get $app admin_mail_html)
-	admin_mail_html="${admin_mail_html:-0}"
-
-	# If a html email is required. Apply html to the changelog.
- 	if [ "$admin_mail_html" -eq 1 ]
- 	then
-		sed -in-place "s@\*(\([[:alnum:]]*\)) -> \(.*\)@* __URL_TAG1__\2__URL_TAG2__${repo}/commit/\1__URL_TAG3__@g" changelog
- 	fi
+# DAV clients cannot use the SSO: SSOwat lets requests through and Radicale
+# checks the credentials and the permission against the LDAP
+_radicale_ensure_public_access() {
+    ynh_app_setting_set --key=protect_against_basic_auth_spoofing --value=false
+    if ! yunohost user permission info "$app.main" --output-as json --quiet | jq -e '.allowed | index("visitors")' > /dev/null; then
+        ynh_permission_update --permission="main" --add="visitors"
+    fi
 }

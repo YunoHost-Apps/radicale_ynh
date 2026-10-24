@@ -1,0 +1,20 @@
+#:schema https://github.com/YunoHost/apps/raw/main/schemas/config_panel.v1.schema.json
+
+version = "1.0"
+
+[main]
+name.en = "Configuration"
+name.fr = "Configuration"
+
+services = ["__APP__"]
+
+    [main.storage]
+    name.en = "Storage"
+    name.fr = "Stockage"
+
+        [main.storage.git_history]
+        ask.en = "Keep a history of every change"
+        ask.fr = "Conserver un historique de chaque modification"
+        help.en = "Every change made to a calendar or an address book is recorded in a git repository, in __DATA_DIR__/collections. A deleted or modified event or contact can then always be recovered. Disabling it keeps the existing history but stops recording new changes."
+        help.fr = "Chaque modification d'un agenda ou d'un carnet d'adresses est enregistrée dans un dépôt git, dans __DATA_DIR__/collections. Un événement ou un contact supprimé ou modifié peut ainsi toujours être retrouvé. Désactiver cette option conserve l'historique existant mais n'enregistre plus les nouvelles modifications."
+        type = "boolean"
