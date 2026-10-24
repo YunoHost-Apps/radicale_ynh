@@ -19,7 +19,7 @@ code = "https://github.com/Kozea/Radicale"
 cpe = "cpe:2.3:a:radicale:radicale"
 
 [integration]
-yunohost = ">= 12.1.17"
+yunohost = ">= 12.1.40"
 helpers_version = "2.1"
 architectures = "all"
 multi_instance = true
