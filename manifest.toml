@@ -7,7 +7,7 @@ name = "Radicale"
 description.en = "Lightweight CalDAV (calendars, tasks) and CardDAV (contacts) server"
 description.fr = "Serveur CalDAV (agendas, tâches) et CardDAV (contacts) léger"
 
-version = "3.8.3~ynh1"
+version = "3.8.3~ynh2"
 
 maintainers = ["retiolus"]
 
