@@ -13,6 +13,8 @@ source /usr/share/yunohost/helpers
 
 git_history=1
 ynh_app_setting_set --key=git_history --value="$git_history"
+protect_collections=0
+ynh_app_setting_set --key=protect_collections --value="$protect_collections"
 sharing_users=0
 ynh_app_setting_set --key=sharing_users --value="$sharing_users"
 sharing_links=0

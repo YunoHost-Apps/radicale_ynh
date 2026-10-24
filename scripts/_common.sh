@@ -54,6 +54,11 @@ EOF
 
 _radicale_add_config() {
     storage_hook="$(_radicale_storage_hook)"
+    if [ "${protect_collections:-0}" -eq 1 ]; then
+        permit_delete_collection=false
+    else
+        permit_delete_collection=true
+    fi
     ynh_config_add --template="config" --destination="$install_dir/config"
     chmod 640 "$install_dir/config"
     chown "$app:$app" "$install_dir/config"

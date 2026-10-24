@@ -26,6 +26,7 @@ realm = Radicale - Password Required
 
 [rights]
 type = owner_only
+permit_delete_collection = __PERMIT_DELETE_COLLECTION__
 
 [storage]
 type = multifilesystem
