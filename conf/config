@@ -19,9 +19,8 @@ ldap_base = ou=users,dc=yunohost,dc=org
 # Users allowed on the permission __APP__.main, by username or email address
 ldap_filter = (&(objectClass=posixAccount)(|(uid={0})(mail={0}))(permission=cn=__APP__.main,ou=permission,dc=yunohost,dc=org))
 ldap_user_attribute = uid
-cache_logins = true
-cache_successful_logins_expiry = 15
-cache_failed_logins_expiry = 90
+# Disabled: in Radicale 3.8.3, parallel requests can fail with a 500 when a cached login expires
+cache_logins = false
 delay = 1
 realm = Radicale - Password Required
 
