@@ -1,0 +1,47 @@
+[Unit]
+Description=Radicale: CalDAV and CardDAV server
+Documentation=https://radicale.org/v3.html
+After=network.target slapd.service
+
+[Service]
+Type=simple
+User=__APP__
+Group=__APP__
+UMask=0027
+WorkingDirectory=__DATA_DIR__/
+Environment=HOME=__DATA_DIR__
+ExecStart=__INSTALL_DIR__/venv/bin/radicale --config __INSTALL_DIR__/config
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:/var/log/__APP__/__APP__.log
+StandardError=inherit
+
+# Sandboxing options to harden security
+# Details for these options: https://www.freedesktop.org/software/systemd/man/systemd.exec.html
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+DevicePolicy=closed
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=__DATA_DIR__ /var/log/__APP__
+ProtectControlGroups=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+ProtectKernelLogs=yes
+LockPersonality=yes
+SystemCallArchitectures=native
+SystemCallFilter=~@clock @debug @module @mount @obsolete @reboot @setuid @swap @cpu-emulation @privileged
+
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+[Install]
+WantedBy=multi-user.target

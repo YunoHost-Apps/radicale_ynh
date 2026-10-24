@@ -1,316 +1,302 @@
 #!/bin/bash
 
 #=================================================
-# COMMON VARIABLES
+# COMMON VARIABLES AND CUSTOM HELPERS
 #=================================================
 
-YNH_PHP_VERSION="7.3"
+# The venv is rebuilt every time to follow Python upgrades of the system
+_radicale_install_venv() {
+    ynh_setup_source --dest_dir="$install_dir/source" --full_replace
 
-pkg_dependencies="python-pip python-virtualenv virtualenv python-dev libldap2-dev libsasl2-dev libssl-dev uwsgi uwsgi-plugin-python"
+    ynh_safe_rm "$install_dir/venv"
+    chown -R "$app:$app" "$install_dir"
+    pushd "$install_dir"
+        ynh_exec_as_app python3 -m venv "$install_dir/venv"
+        ynh_hide_warnings ynh_exec_as_app "$install_dir/venv/bin/pip" install --no-cache-dir --upgrade pip setuptools wheel
+        ynh_hide_warnings ynh_exec_as_app "$install_dir/venv/bin/pip" install --no-cache-dir "$install_dir/source[ldap]"
+    popd
 
-#=================================================
-# BOOLEAN CONVERTER
-#=================================================
-
-bool_to_01 () {
-	local var="$1"
-	[ "$var" = "true" ] && var=1
-	[ "$var" = "false" ] && var=0
-	echo "$var"
+    ynh_safe_rm "$install_dir/source"
+    ynh_safe_rm "$install_dir/.cache"
 }
 
-bool_to_true_false () {
-	local var="$1"
-	[ "$var" = "1" ] && var=true
-	[ "$var" = "0" ] && var=false
-	echo "$var"
+_radicale_storage_hook() {
+    if [ "${git_history:-1}" -eq 1 ]; then
+        echo "$install_dir/storage_hook.sh %(user)s"
+    fi
 }
 
-#=================================================
-# FUTUR OFFICIAL HELPERS
-#=================================================
+_radicale_init_git() {
+    local collections_dir="$data_dir/collections"
+    [ "${git_history:-1}" -eq 1 ] || return 0
 
+    install -o "$app" -g "$app" -m 750 "$YNH_APP_BASEDIR/conf/storage_hook.sh" "$install_dir/storage_hook.sh"
 
-#=================================================
-# EXPERIMENTAL HELPERS
-#=================================================
+    if [ ! -d "$collections_dir/.git" ]; then
+        ynh_exec_as_app git -C "$collections_dir" init --quiet --initial-branch=main
+    fi
+    ynh_exec_as_app git -C "$collections_dir" config user.name "Radicale"
+    ynh_exec_as_app git -C "$collections_dir" config user.email "$app@$domain"
+    cat > "$collections_dir/.gitignore" << EOF
+.Radicale.cache
+.Radicale.lock
+.Radicale.tmp-*
+EOF
+    chown "$app:$app" "$collections_dir/.gitignore"
 
-# Send an email to inform the administrator
-#
-# usage: ynh_send_readme_to_admin --app_message=app_message [--recipients=recipients] [--type=type]
-# | arg: -m --app_message= - The file with the content to send to the administrator.
-# | arg: -r, --recipients= - The recipients of this email. Use spaces to separate multiples recipients. - default: root
-#	example: "root admin@domain"
-#	If you give the name of a YunoHost user, ynh_send_readme_to_admin will find its email adress for you
-#	example: "root admin@domain user1 user2"
-# | arg: -t, --type= - Type of mail, could be 'backup', 'change_url', 'install', 'remove', 'restore', 'upgrade'
-ynh_send_readme_to_admin() {
-	# Declare an array to define the options of this helper.
-	declare -Ar args_array=( [m]=app_message= [r]=recipients= [t]=type= )
-	local app_message
-	local recipients
-	local type
-	# Manage arguments with getopts
+    ynh_exec_as_app git -C "$collections_dir" add --all
+    if ! ynh_exec_as_app git -C "$collections_dir" diff --cached --quiet; then
+        ynh_exec_as_app git -C "$collections_dir" commit --quiet --message="State of the collections when history was enabled"
+    fi
+}
 
-	ynh_handle_getopts_args "$@"
-	app_message="${app_message:-}"
-	recipients="${recipients:-root}"
-	type="${type:-install}"
+_radicale_add_config() {
+    storage_hook="$(_radicale_storage_hook)"
+    ynh_config_add --template="config" --destination="$install_dir/config"
+    chmod 640 "$install_dir/config"
+    chown "$app:$app" "$install_dir/config"
+}
 
-	# Get the value of admin_mail_html
-	admin_mail_html=$(ynh_app_setting_get $app admin_mail_html)
-	admin_mail_html="${admin_mail_html:-0}"
+_radicale_prepare_data_dir() {
+    local collections_dir="$data_dir/collections"
+    mkdir -p "$collections_dir"
+    chown "$app:$app" "$collections_dir"
+    chmod 750 "$collections_dir"
+}
 
-	# Retrieve the email of users
-	find_mails () {
-		local list_mails="$1"
-		local mail
-		local recipients=" "
-		# Read each mail in argument
-		for mail in $list_mails
-		do
-			# Keep root or a real email address as it is
-			if [ "$mail" = "root" ] || echo "$mail" | grep --quiet "@"
-			then
-				recipients="$recipients $mail"
-			else
-				# But replace an user name without a domain after by its email
-				if mail=$(ynh_user_get_info "$mail" "mail" 2> /dev/null)
-				then
-					recipients="$recipients $mail"
-				fi
-			fi
-		done
-		echo "$recipients"
-	}
-	recipients=$(find_mails "$recipients")
+# Fails if another app (e.g. Nextcloud) already defines the .well-known redirections on the domain
+_radicale_wellknown_available() {
+    local conf
+    for conf in "/etc/nginx/conf.d/$domain.d/"*.conf; do
+        [ -e "$conf" ] || continue
+        [ "$conf" == "/etc/nginx/conf.d/$domain.d/$app.conf" ] && continue
+        if grep -Eq '^[^#]*\.well-known/(caldav|carddav)' "$conf"; then
+            return 1
+        fi
+    done
+    return 0
+}
 
-	# Subject base
-	local mail_subject="☁️🆈🅽🅷☁️: \`$app\`"
+_radicale_add_nginx_config() {
+    local nginx_conf="/etc/nginx/conf.d/$domain.d/$app.conf"
+    local wellknown=0
+    if _radicale_wellknown_available; then
+        wellknown=1
+    else
+        ynh_print_warn "Another app already handles /.well-known/caldav and /.well-known/carddav on $domain: clients will need the full URL https://$domain${path%/}/ instead of just the domain name."
+    fi
 
-	# Adapt the subject according to the type of mail required.
-	if [ "$type" = "backup" ]; then
-		mail_subject="$mail_subject has just been backup."
-	elif [ "$type" = "change_url" ]; then
-		mail_subject="$mail_subject has just been moved to a new URL!"
-	elif [ "$type" = "remove" ]; then
-		mail_subject="$mail_subject has just been removed!"
-	elif [ "$type" = "restore" ]; then
-		mail_subject="$mail_subject has just been restored!"
-	elif [ "$type" = "upgrade" ]; then
-		mail_subject="$mail_subject has just been upgraded!"
-	else	# install
-		mail_subject="$mail_subject has just been installed!"
-	fi
+    ynh_config_add_nginx
 
-	local mail_message="This is an automated message from your beloved YunoHost server.
+    # Edit the generated file, not the template, which is reused by later upgrades
+    if [ "$wellknown" -eq 1 ]; then
+        ynh_replace --match="^#wellknown#" --replace="" --file="$nginx_conf"
+        ynh_store_file_checksum "$nginx_conf"
+        ynh_systemctl --service=nginx --action=reload
+    fi
+}
 
-Specific information for the application $app.
-
-$(if [ -n "$app_message" ]
-then
-	cat "$app_message"
-else
-	echo "...No specific information..."
-fi)
-
----
-Automatic diagnosis data from YunoHost
-
-__PRE_TAG1__$(yunohost tools diagnosis | grep -B 100 "services:" | sed '/services:/d')__PRE_TAG2__"
-
-	# Store the message into a file for further modifications.
-	echo "$mail_message" > mail_to_send
-
-	# If a html email is required. Apply html tags to the message.
- 	if [ "$admin_mail_html" -eq 1 ]
- 	then
-		# Insert 'br' tags at each ending of lines.
-		ynh_replace_string "$" "<br>" mail_to_send
-
-		# Insert starting HTML tags
-		sed --in-place '1s@^@<!DOCTYPE html>\n<html>\n<head></head>\n<body>\n@' mail_to_send
-
-		# Keep tabulations
-		ynh_replace_string "  " "\&#160;\&#160;" mail_to_send
-		ynh_replace_string "\t" "\&#160;\&#160;" mail_to_send
-
-		# Insert url links tags
-		ynh_replace_string "__URL_TAG1__\(.*\)__URL_TAG2__\(.*\)__URL_TAG3__" "<a href=\"\2\">\1</a>" mail_to_send
-
-		# Insert pre tags
-		ynh_replace_string "__PRE_TAG1__" "<pre>" mail_to_send
-		ynh_replace_string "__PRE_TAG2__" "<\pre>" mail_to_send
-
-		# Insert finishing HTML tags
-		echo -e "\n</body>\n</html>" >> mail_to_send
-
-	# Otherwise, remove tags to keep a plain text.
-	else
-		# Remove URL tags
-		ynh_replace_string "__URL_TAG[1,3]__" "" mail_to_send
-		ynh_replace_string "__URL_TAG2__" ": " mail_to_send
-
-		# Remove PRE tags
-		ynh_replace_string "__PRE_TAG[1-2]__" "" mail_to_send
-	fi
-
-	# Define binary to use for mail command
-	if [ -e /usr/bin/bsd-mailx ]
-	then
-		local mail_bin=/usr/bin/bsd-mailx
-	else
-		local mail_bin=/usr/bin/mail.mailutils
-	fi
-
-	if [ "$admin_mail_html" -eq 1 ]
-	then
-		content_type="text/html"
-	else
-		content_type="text/plain"
-	fi
-
-	# Send the email to the recipients
-	cat mail_to_send | $mail_bin -a "Content-Type: $content_type; charset=UTF-8" -s "$mail_subject" "$recipients"
+# DAV clients cannot use the SSO: SSOwat lets requests through and Radicale
+# checks the credentials and the permission against the LDAP
+_radicale_ensure_public_access() {
+    ynh_app_setting_set --key=protect_against_basic_auth_spoofing --value=false
+    if ! yunohost user permission info "$app.main" --output-as json --quiet | jq -e '.allowed | index("visitors")' > /dev/null; then
+        ynh_permission_update --permission="main" --add="visitors"
+    fi
 }
 
 #=================================================
-
-ynh_maintenance_mode_ON () {
-	# Load value of $path_url and $domain from the config if their not set
-	if [ -z $path_url ]; then
-		path_url=$(ynh_app_setting_get $app path)
-	fi
-	if [ -z $domain ]; then
-		domain=$(ynh_app_setting_get $app domain)
-	fi
-
-	# Create an html to serve as maintenance notice
-	echo "<!DOCTYPE html>
-<html>
-<head>
-<meta http-equiv="refresh" content="3">
-<title>Your app $app is currently under maintenance!</title>
-<style>
-	body {
-		width: 70em;
-		margin: 0 auto;
-	}
-</style>
-</head>
-<body>
-<h1>Your app $app is currently under maintenance!</h1>
-<p>This app has been put under maintenance by your administrator at $(date)</p>
-<p>Please wait until the maintenance operation is done. This page will be reloaded as soon as your app will be back.</p>
-
-</body>
-</html>" > "/var/www/html/maintenance.$app.html"
-
-	# Create a new nginx config file to redirect all access to the app to the maintenance notice instead.
-	echo "# All request to the app will be redirected to ${path_url}_maintenance and fall on the maintenance notice
-rewrite ^${path_url}/(.*)$ ${path_url}_maintenance/? redirect;
-# Use another location, to not be in conflict with the original config file
-location ${path_url}_maintenance/ {
-alias /var/www/html/ ;
-
-try_files maintenance.$app.html =503;
-
-# Include SSOWAT user panel.
-include conf.d/yunohost_panel.conf.inc;
-}" > "/etc/nginx/conf.d/$domain.d/maintenance.$app.conf"
-
-	# The current config file will redirect all requests to the root of the app.
-	# To keep the full path, we can use the following rewrite rule:
-	# 	rewrite ^${path_url}/(.*)$ ${path_url}_maintenance/\$1? redirect;
-	# The difference will be in the $1 at the end, which keep the following queries.
-	# But, if it works perfectly for a html request, there's an issue with any php files.
-	# This files are treated as simple files, and will be downloaded by the browser.
-	# Would be really be nice to be able to fix that issue. So that, when the page is reloaded after the maintenance, the user will be redirected to the real page he was.
-
-	systemctl reload nginx
-}
-
-ynh_maintenance_mode_OFF () {
-	# Load value of $path_url and $domain from the config if their not set
-	if [ -z $path_url ]; then
-		path_url=$(ynh_app_setting_get $app path)
-	fi
-	if [ -z $domain ]; then
-		domain=$(ynh_app_setting_get $app domain)
-	fi
-
-	# Rewrite the nginx config file to redirect from ${path_url}_maintenance to the real url of the app.
-	echo "rewrite ^${path_url}_maintenance/(.*)$ ${path_url}/\$1 redirect;" > "/etc/nginx/conf.d/$domain.d/maintenance.$app.conf"
-	systemctl reload nginx
-
-	# Sleep 4 seconds to let the browser reload the pages and redirect the user to the app.
-	sleep 4
-
-	# Then remove the temporary files used for the maintenance.
-	rm "/var/www/html/maintenance.$app.html"
-	rm "/etc/nginx/conf.d/$domain.d/maintenance.$app.conf"
-
-	systemctl reload nginx
-}
-
+# MIGRATION FROM THE RADICALE 1.x PACKAGE
 #=================================================
 
-# Create a changelog for an app after an upgrade.
-#
-# The changelog is printed into the file ./changelog for the time of the upgrade.
-#
-# In order to create a changelog, ynh_app_changelog will get info from /etc/yunohost/apps/$app/status.json
-# In order to find the current commit use by the app.
-# The remote repository, and the branch.
-# The changelog will be only the commits since the current revision.
-#
-# Because of the need of those info, ynh_app_changelog works only
-# with apps that have been installed from a list.
-#
-# usage: ynh_app_changelog
-ynh_app_changelog () {
-	get_value_from_settings ()
-	{
-		local value="$1"
-		# Extract a value from the status.json file of an installed app.
+# Before 3.8.3~ynh1: Radicale 1.1 (Python 2, uWSGI, optional InfCloud), data in
+# $install_dir/collections, configuration in /etc/$app.
+# A failed upgrade removes $install_dir and the restore of the 1.x backup is
+# likely to fail, so the data is first copied to $data_dir, which is kept.
 
-		grep "$value\": \"" /etc/yunohost/apps/$app/status.json | sed "s/.*$value\": \"\([^\"]*\).*/\1/"
-	}
+_radicale_save_v1_data() {
+    local backup="$data_dir/radicale1-backup"
+    local temp="$data_dir/.radicale1-backup.tmp"
 
-	local current_revision="$(get_value_from_settings revision)"
-	local repo="$(get_value_from_settings url)"
-	local branch="$(get_value_from_settings branch)"
-	# ynh_app_changelog works only with an app installed from a list.
-	if [ -z "$current_revision" ] || [ -z "$repo" ] || [ -z "$branch" ]
-	then
-		ynh_print_warn "Unable to build the changelog..."
-		touch changelog
-		return 0
-	fi
+    if [ ! -d "$install_dir/collections" ]; then
+        if [ -d "$backup/collections" ]; then
+            ynh_print_info "Using the copy of the Radicale 1.x data saved by a previous upgrade attempt, in $backup"
+            return 0
+        fi
+        ynh_print_warn "No Radicale 1.x data found in $install_dir/collections"
+        return 0
+    fi
 
-	# Fetch the history of the repository, without cloning it
-	mkdir git_history
-	(cd git_history
-	ynh_exec_warn_less git init
-	ynh_exec_warn_less git remote add -f origin $repo
-	# Get the line of the current commit of the installed app in the history.
-	local line_to_head=$(git log origin/$branch --pretty=oneline | grep --line-number "$current_revision" | cut -d':' -f1)
-	# Cut the history before the current commit, to keep only newer commits.
-	# Then use sed to reorganise each lines and have a nice list of commits since the last upgrade.
-	# This list is redirected into the file changelog
-	git log origin/$branch --pretty=oneline | head --lines=$(($line_to_head-1)) | sed 's/^\([[:alnum:]]*\)\(.*\)/*(\1) -> \2/g' > ../changelog)
-	# Remove 'Merge pull request' commits
-	sed -i '/Merge pull request #[[:digit:]]* from/d' changelog
-	# As well as conflict resolving commits
-	sed -i '/Merge branch .* into/d' changelog
+    # Replace the copy of a previous attempt only once the new one is complete
+    ynh_safe_rm "$temp"
+    mkdir -p "$temp"
+    cp -a "$install_dir/collections" "$temp/collections"
+    if [ -d "/etc/$app" ]; then
+        cp -a "/etc/$app" "$temp/etc"
+    fi
+    chown -R root:root "$temp"
+    chmod -R go-rwx "$temp"
+    ynh_safe_rm "$backup"
+    mv "$temp" "$backup"
+}
 
-	# Get the value of admin_mail_html
-	admin_mail_html=$(ynh_app_setting_get $app admin_mail_html)
-	admin_mail_html="${admin_mail_html:-0}"
+_radicale_v1_die() {
+    local backup="$data_dir/radicale1-backup"
+    local message="The migration of your Radicale 1.x data failed: $1"
+    message+=$'\n\n'"Your data is safe: a copy of it is in $backup/collections. This copy is kept even if the app is removed (unless you explicitly purge its data), and the safety backup made by YunoHost before this upgrade contains it too (see 'yunohost backup list'; the archives are in /home/yunohost.backup/archives and can be extracted with 'tar -xf')."
+    message+=$'\n\n'"YunoHost will now try to restore the previous version of the app. If it cannot, installing the app again converts the copy automatically. You can also import the data in any client: in the copy, each .ics file is a calendar and each .vcf file an address book."
+    ynh_die "$message"
+}
 
-	# If a html email is required. Apply html to the changelog.
- 	if [ "$admin_mail_html" -eq 1 ]
- 	then
-		sed -in-place "s@\*(\([[:alnum:]]*\)) -> \(.*\)@* __URL_TAG1__\2__URL_TAG2__${repo}/commit/\1__URL_TAG3__@g" changelog
- 	fi
+_radicale_v1_install_die() {
+    local backup="$data_dir/radicale1-backup"
+    local message="The conversion of the Radicale 1.x data found in $backup failed: $1"
+    message+=$'\n\n'"This data was not modified. To install the app without converting it, move the folder $backup somewhere else first. You can also import it in any client: each .ics file is a calendar and each .vcf file an address book."
+    ynh_die "$message"
+}
+
+# Also used on install, to recover the data left by a failed upgrade
+_radicale_convert_v1_data() {
+    local backup="$data_dir/radicale1-backup"
+    local collections_dir="$data_dir/collections"
+    local marker="$data_dir/.radicale1-migration-in-progress"
+    local die="${1:-_radicale_v1_die}"
+
+    if [ ! -d "$backup/collections" ] || [ -z "$(ls -A "$backup/collections")" ]; then
+        return 0
+    fi
+
+    if [ -d "$collections_dir/collection-root" ]; then
+        if [ -e "$marker" ]; then
+            # Conversion of a previous failed attempt
+            ynh_safe_rm "$collections_dir"
+        else
+            "$die" "$collections_dir already contains Radicale 3 data, refusing to overwrite it."
+        fi
+    else
+        ynh_safe_rm "$collections_dir"
+    fi
+    touch "$marker"
+
+    ynh_print_info "Converting the calendars and address books to the Radicale 3 format..."
+    local users_file report="$backup/migration-report.txt"
+    users_file="$(mktemp)"
+    yunohost user list --output-as json --quiet | jq -r '.users | keys[]' > "$users_file"
+    if ! python3 "$YNH_APP_BASEDIR/scripts/migrate_radicale1_storage.py" --users "$users_file" \
+        "$backup/collections" "$collections_dir" > "$report" 2>&1; then
+        cat "$report" >&2
+        ynh_safe_rm "$users_file"
+        "$die" "the conversion script reported an error (see the messages above)."
+    fi
+    ynh_safe_rm "$users_file"
+    grep -v "^INFO: converted " "$report" >&2 || true
+    if grep -q "^WARNING:" "$report"; then
+        ynh_print_warn "Some data needed adjustments during the conversion, see the warnings above (also saved in $report)."
+    fi
+    chown -R "$app:$app" "$collections_dir"
+    chmod 750 "$collections_dir"
+
+    # Fail on unreadable items instead of skipping them
+    ynh_print_info "Checking the converted data with Radicale 3..."
+    local verify_log
+    verify_log="$(mktemp)"
+    chmod 644 "$verify_log"
+    pushd "$data_dir"
+        ynh_exec_as_app "$install_dir/venv/bin/radicale" --config "$install_dir/config" \
+            --logging-level warning --no-storage-skip-broken-item --verify-storage > "$verify_log" 2>&1 \
+            || { cat "$verify_log" >&2; ynh_safe_rm "$verify_log"; "$die" "Radicale 3 cannot read some of the converted data (see the messages above)."; }
+    popd
+    if grep -Eq "ERROR|CRITICAL" "$verify_log"; then
+        cat "$verify_log" >&2
+        ynh_safe_rm "$verify_log"
+        "$die" "Radicale 3 found errors in the converted data (see the messages above)."
+    fi
+    ynh_safe_rm "$verify_log"
+}
+
+# Also called on install and removal: a failed upgrade from 1.x leaves them behind
+_radicale_remove_v1_remains() {
+    if [ -e /etc/uwsgi/apps-enabled/radicale.ini ] || [ -e /etc/uwsgi/apps-available/radicale.ini ]; then
+        ynh_safe_rm /etc/uwsgi/apps-enabled/radicale.ini
+        ynh_safe_rm /etc/uwsgi/apps-available/radicale.ini
+        if systemctl is-active --quiet uwsgi; then
+            ynh_systemctl --service=uwsgi --action=restart
+        fi
+    fi
+
+    # InfCloud's pool (the phpversion setting is renamed by the helpers)
+    local pool php_service
+    for pool in /etc/php/*/fpm/pool.d/"$app".conf; do
+        [ -e "$pool" ] || continue
+        php_service="php$(basename "$(dirname "$(dirname "$(dirname "$pool")")")")-fpm"
+        ynh_safe_rm "$pool"
+        if systemctl is-active --quiet "$php_service"; then
+            ynh_systemctl --service="$php_service" --action=reload
+        fi
+    done
+
+    # Left by the maintenance mode of the 1.x restore script when it fails
+    local maintenance_conf
+    for maintenance_conf in /etc/nginx/conf.d/*.d/maintenance."$app".conf; do
+        [ -e "$maintenance_conf" ] || continue
+        ynh_safe_rm "$maintenance_conf"
+        ynh_safe_rm "/var/www/html/maintenance.$app.html"
+        ynh_systemctl --service=nginx --action=reload
+    done
+
+    ynh_safe_rm "/opt/yunohost/$app"
+    ynh_safe_rm "/var/log/uwsgi/app/$app.log"
+    # Not the configuration of a Radicale installed from Debian
+    if grep -qs "dc=yunohost,dc=org" "/etc/$app/config"; then
+        ynh_safe_rm "/etc/$app"
+    fi
+}
+
+_radicale_migrate_from_v1() {
+    local backup="$data_dir/radicale1-backup"
+
+    # With InfCloud, the path setting pointed to $path/infcloud
+    if [[ "$path" == */infcloud ]]; then
+        path="${path%/infcloud}"
+        path="${path:-/}"
+        ynh_app_setting_set --key=path --value="$path"
+        ynh_permission_url --permission="main" --url="/"
+    fi
+
+    _radicale_convert_v1_data
+
+    # Sharing rules are not migrated: rights are owner_only
+    if [ -f "$backup/etc/rights" ]; then
+        local custom_rules
+        custom_rules="$(grep -Ev '^\s*(#|$)' "$backup/etc/rights" \
+            | grep -Fxv -e '[user-read-root-collection]' -e 'user: .+' -e 'collection: ^/' -e 'permission: r' \
+                -e '[owner-read-write]' -e 'collection: ^%(login)s|^%(login)s/.*' -e 'permission: rw' || true)"
+        if [ -n "$custom_rules" ]; then
+            ynh_print_warn "The sharing rules added to /etc/$app/rights are not migrated: with Radicale 3, each user only accesses their own calendars and address books. The old rules are kept in $backup/etc/rights."
+        fi
+    fi
+
+    _radicale_remove_v1_remains
+    local entry
+    for entry in "$install_dir/"* "$install_dir/".[!.]*; do
+        [ -e "$entry" ] || continue
+        case "$(basename "$entry")" in
+            venv | config | storage_hook.sh) ;;
+            *) ynh_safe_rm "$entry" ;;
+        esac
+    done
+
+    # The 1.x package let every user log in
+    ynh_permission_update --permission="main" --add="all_users"
+
+    local setting
+    for setting in infcloud language admin version phpversion php_version fpm_footprint fpm_usage fpm_free_footprint \
+        overwrite_logging overwrite_config overwrite_infcloud overwrite_nginx overwrite_phpfpm admin_mail_html \
+        final_path skipped_regex unprotected_uris protected_uris; do
+        ynh_app_setting_delete --key="$setting"
+    done
+}
+
+_radicale_v1_migration_done() {
+    ynh_safe_rm "$data_dir/.radicale1-migration-in-progress"
 }
