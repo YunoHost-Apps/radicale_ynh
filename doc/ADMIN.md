@@ -39,6 +39,14 @@ sudo -u __APP__ git -C __DATA_DIR__/collections log --stat
 sudo -u __APP__ git -C __DATA_DIR__/collections show <commit>:collection-root/<user>/<calendar>/<item>.ics
 ```
 
+Disabling the option keeps the calendars, the address books and the existing history. To delete the history, disable the option, then:
+
+```bash
+sudo rm -rf __DATA_DIR__/collections/.git
+```
+
+If the option is enabled again, a new history starts from the current state.
+
 ### Protection against deletion
 
 When "Prevent deleting a whole calendar or address book" is enabled in the configuration panel of the app, Radicale refuses to delete a whole calendar or address book, from the clients and from the web interface. Events and contacts can still be deleted one by one, and a whole calendar or address book can still be replaced by importing a file. To delete a calendar or an address book anyway, disable the option for a moment.
