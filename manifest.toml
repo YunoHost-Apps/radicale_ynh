@@ -7,7 +7,7 @@ name = "Radicale"
 description.en = "Lightweight CalDAV (calendars, tasks) and CardDAV (contacts) server"
 description.fr = "Serveur CalDAV (agendas, tâches) et CardDAV (contacts) léger"
 
-version = "3.8.3~ynh1"
+version = "3.9.0~ynh1"
 
 maintainers = ["retiolus"]
 
@@ -19,7 +19,7 @@ code = "https://github.com/Kozea/Radicale"
 cpe = "cpe:2.3:a:radicale:radicale"
 
 [integration]
-yunohost = ">= 12.1.17"
+yunohost = ">= 12.1.40"
 helpers_version = "2.1"
 architectures = "all"
 multi_instance = true
@@ -49,8 +49,8 @@ ram.runtime = "50M"
     [resources.sources]
 
     [resources.sources.main]
-    url = "https://github.com/Kozea/Radicale/archive/refs/tags/v3.8.3.tar.gz"
-    sha256 = "439fd36ce5036dceaf65da0bc88bd831e576fa06cff86a915971784c5c032e49"
+    url = "https://github.com/Kozea/Radicale/archive/refs/tags/v3.9.0.tar.gz"
+    sha256 = "c60659f8b7238406136cc2cd70a1a09ec4f204fc690546ed53923ffad6cecc31"
 
     autoupdate.strategy = "latest_github_tag"
 
