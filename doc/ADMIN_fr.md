@@ -39,6 +39,14 @@ sudo -u __APP__ git -C __DATA_DIR__/collections log --stat
 sudo -u __APP__ git -C __DATA_DIR__/collections show <commit>:collection-root/<utilisateur>/<agenda>/<élément>.ics
 ```
 
+Désactiver l'option conserve les agendas, les carnets d'adresses et l'historique existant. Pour supprimer l'historique, désactivez l'option, puis :
+
+```bash
+sudo rm -rf __DATA_DIR__/collections/.git
+```
+
+Si l'option est réactivée, un nouvel historique démarre à partir de l'état actuel.
+
 ### Protection contre la suppression
 
 Quand « Empêcher la suppression d'un agenda ou d'un carnet d'adresses entier » est activé dans le panneau de configuration de l'application, Radicale refuse de supprimer un agenda ou un carnet d'adresses entier, depuis les clients comme depuis l'interface web. Les événements et les contacts peuvent toujours être supprimés un par un, et un agenda ou un carnet d'adresses entier peut toujours être remplacé en important un fichier. Pour supprimer quand même un agenda ou un carnet d'adresses, désactivez l'option un instant.
