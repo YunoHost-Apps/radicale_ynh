@@ -22,7 +22,7 @@ _radicale_install_venv() {
 
 _radicale_storage_hook() {
     if [ "${git_history:-1}" -eq 1 ]; then
-        echo "$install_dir/storage_hook.sh %(user)s"
+        echo "$install_dir/storage_hook.sh %(actor)s"
     fi
 }
 
