@@ -33,8 +33,8 @@ services = ["__APP__"]
         [main.sharing.sharing_users]
         ask.en = "Let users share their calendars and address books with other users"
         ask.fr = "Permettre aux utilisateurs de partager leurs agendas et carnets d'adresses avec d'autres utilisateurs"
-        help.en = "Each user shares from the web interface of Radicale, read-only or editable. The recipient finds the share under incoming shares in the web interface, and must enable and show it before it reaches their clients. Disabling this option deletes all the shares between users."
-        help.fr = "Chaque utilisateur partage depuis l'interface web de Radicale, en lecture seule ou en écriture. Le destinataire trouve le partage dans les partages reçus de l'interface web, et doit l'activer et l'afficher pour qu'il arrive dans ses clients. Désactiver cette option supprime tous les partages entre utilisateurs."
+        help.en = "Each user shares from the web interface of Radicale, read-only or editable. The recipient finds the share under incoming shares in the web interface, and must enable and show it before it reaches their clients. It also lets users make a birthday calendar from their address books. Disabling this option deletes all the shares between users and the birthday calendars."
+        help.fr = "Chaque utilisateur partage depuis l'interface web de Radicale, en lecture seule ou en écriture. Le destinataire trouve le partage dans les partages reçus de l'interface web, et doit l'activer et l'afficher pour qu'il arrive dans ses clients. Elle permet aussi de créer un agenda des anniversaires à partir de ses carnets d'adresses. Désactiver cette option supprime tous les partages entre utilisateurs et les agendas des anniversaires."
         type = "boolean"
 
         [main.sharing.sharing_links]

@@ -20,7 +20,7 @@ Each user can only see and edit their own calendars and address books, unless sh
 
 Sharing is disabled by default. In the configuration panel of the app, the administrator can let users share their calendars and address books with other users, through a secret link, or both. The shares are then made by the users themselves from the web interface, read-only or editable:
 
-- **With another user**: the recipient finds the share in the incoming shares of the web interface, and it reaches their clients once they enable it and choose to show it. A birthday calendar can also be made from an address book.
+- **With another user**: the recipient finds the share in the incoming shares of the web interface, and it reaches their clients once they enable it and choose to show it.
 - **Through a link**: anyone who has the link can access the calendar or address book without an account.
 
 Good to know:
@@ -29,6 +29,19 @@ Good to know:
 - Disabling an option deletes the matching shares or links.
 - Shares and links keep working after their owner is removed from the permission or from YunoHost. To cut them off, disable the matching option, which deletes all the shares or links.
 - The links appear in the logs of Radicale and NGINX. A link that may have leaked must be deleted and replaced by a new one.
+
+### Birthday calendar
+
+Radicale can show the birthdays of an address book as a read-only calendar, which follows the changes made to the contacts. It needs sharing with other users to be enabled in the configuration panel of the app. To create it, in the web interface:
+
+1. Click the share button of the address book, then "New Share by Map".
+2. Under "Conversions", choose "Birthday". The other fields are already filled in: the calendar is shared with oneself.
+3. Under "Properties override", tick "Displayname" and give the calendar a name, such as "Birthdays".
+4. Click "Create". The calendar appears next to the others, and in the clients.
+
+The title of the events and the reminders can be changed under "Config".
+
+Disabling sharing with other users also deletes the birthday calendars.
 
 ### History of changes
 
