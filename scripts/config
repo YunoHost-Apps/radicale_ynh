@@ -10,14 +10,24 @@ source /usr/share/yunohost/helpers
 ynh_abort_if_errors
 
 #=================================================
-# SPECIFIC SETTERS FOR TOML SHORT KEYS
+# GENERIC FINALIZATION
 #=================================================
 
-set__git_history() {
-    ynh_app_setting_set --key=git_history --value="$git_history"
+ynh_app_config_apply() {
+    _ynh_app_config_apply
+
+    # Shares or links left behind would apply again to a new collection at the same address
+    if [ "${changed[sharing_users]:-false}" == "true" ] && [ "$sharing_users" -eq 0 ]; then
+        ynh_safe_rm "$data_dir/collections/collection-db/files/map"
+    fi
+    if [ "${changed[sharing_links]:-false}" == "true" ] && [ "$sharing_links" -eq 0 ]; then
+        ynh_safe_rm "$data_dir/collections/collection-db/files/token"
+    fi
 
     _radicale_add_config
-    _radicale_init_git
+    if [ "${changed[git_history]:-false}" == "true" ]; then
+        _radicale_init_git
+    fi
 }
 
 #=================================================

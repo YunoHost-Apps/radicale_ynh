@@ -40,7 +40,8 @@ chown -R "$app:$app" "$data_dir/collections"
 ynh_script_progression "Restoring system configurations related to $app..."
 
 # Regenerated: the .well-known redirections depend on the other apps of the domain
-_radicale_add_nginx_config
+ynh_config_add_nginx
+_radicale_add_wellknown
 
 ynh_restore "/etc/systemd/system/$app.service"
 systemctl enable "$app.service" --quiet
