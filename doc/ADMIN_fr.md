@@ -20,7 +20,7 @@ Chaque utilisateur ne peut voir et modifier que ses propres agendas et carnets d
 
 Le partage est désactivé par défaut. Dans le panneau de configuration de l'application, l'administrateur peut permettre aux utilisateurs de partager leurs agendas et carnets d'adresses avec d'autres utilisateurs, par un lien secret, ou les deux. Les partages sont ensuite créés par les utilisateurs eux-mêmes depuis l'interface web, en lecture seule ou en écriture :
 
-- **Avec un autre utilisateur** : le destinataire trouve le partage dans les partages reçus de l'interface web, et il arrive dans ses clients une fois qu'il l'a activé et choisi de l'afficher. Un agenda des anniversaires peut aussi être créé à partir d'un carnet d'adresses.
+- **Avec un autre utilisateur** : le destinataire trouve le partage dans les partages reçus de l'interface web, et il arrive dans ses clients une fois qu'il l'a activé et choisi de l'afficher.
 - **Par un lien** : toute personne qui a le lien peut accéder à l'agenda ou au carnet d'adresses sans compte.
 
 À savoir :
@@ -29,6 +29,19 @@ Le partage est désactivé par défaut. Dans le panneau de configuration de l'ap
 - Désactiver une option supprime les partages ou les liens correspondants.
 - Les partages et les liens continuent de fonctionner après que leur propriétaire a été retiré de la permission ou de YunoHost. Pour les couper, désactivez l'option correspondante, ce qui supprime tous les partages ou tous les liens.
 - Les liens apparaissent dans les journaux de Radicale et de NGINX. Un lien qui a pu fuiter doit être supprimé et recréé.
+
+### Agenda des anniversaires
+
+Radicale peut présenter les anniversaires d'un carnet d'adresses sous la forme d'un agenda en lecture seule, qui suit les modifications des contacts. Il faut pour cela que le partage avec d'autres utilisateurs soit activé dans le panneau de configuration de l'application. Pour le créer, dans l'interface web :
+
+1. Cliquez sur le bouton de partage du carnet d'adresses, puis sur « New Share by Map ».
+2. Dans « Conversions », choisissez « Birthday ». Les autres champs sont déjà remplis : l'agenda est partagé avec soi-même.
+3. Dans « Properties override », cochez « Displayname » et donnez un nom à l'agenda, par exemple « Anniversaires ».
+4. Cliquez sur « Create ». L'agenda apparaît à côté des autres, et dans les clients.
+
+Le titre des événements et les rappels se règlent dans « Config ».
+
+Désactiver le partage avec d'autres utilisateurs supprime aussi les agendas des anniversaires.
 
 ### Historique des modifications
 
